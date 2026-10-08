@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Credit Card Fraud Detection</title>
+<meta name="description" content="Credit card fraud detection on 24 million transactions with PySpark Random Forest — Big Data project presentation." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7;
+    --surface: #fcfcfb;
+    --surface-2: #f3f2ee;
+    --ink: #0b0b0b;
+    --ink-2: #52514e;
+    --muted: #898781;
+    --grid: #e1e0d9;
+    --axis: #c3c2b7;
+    --border: rgba(11, 11, 11, 0.10);
+    --s1: #2a78d6;
+    --s2: #eb6834;
+    --s1-soft: #cde2fb;
+    --accent: #2a78d6;
+    --critical: #d03b3b;
+    --good-text: #006300;
+    --shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --page: #0d0d0d; --surface: #1a1a19; --surface-2: #232321;
+      --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
+      --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+      --s1: #3987e5; --s2: #d95926; --s1-soft: #184f95; --accent: #6da7ec;
+      --critical: #e66767; --good-text: #0ca30c; --shadow: none;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --surface-2: #232321;
+    --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+    --s1: #3987e5; --s2: #d95926; --s1-soft: #184f95; --accent: #6da7ec;
+    --critical: #e66767; --good-text: #0ca30c; --shadow: none;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--page); color: var(--ink);
+    font-family: "IBM Plex Sans Thai", system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 16px; line-height: 1.65;
+  }
+  a { color: var(--accent); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+
+  /* nav */
+  nav.top {
+    position: sticky; top: 0; z-index: 10;
+    background: color-mix(in srgb, var(--page) 88%, transparent);
+    backdrop-filter: blur(8px); border-bottom: 1px solid var(--border);
+  }
+  nav.top .wrap { display: flex; align-items: center; gap: 20px; height: 52px; }
+  nav.top .brand { font-weight: 700; white-space: nowrap; }
+  nav.top .links { display: flex; gap: 16px; overflow-x: auto; scrollbar-width: none; flex: 1; }
+  nav.top .links a { color: var(--ink-2); text-decoration: none; font-size: 14px; white-space: nowrap; }
+  nav.top .links a:hover { color: var(--ink); }
+  .theme-btn {
+    border: 1px solid var(--border); background: var(--surface); color: var(--ink-2);
+    border-radius: 8px; padding: 4px 10px; font: inherit; font-size: 13px; cursor: pointer;
+  }
+
+  /* hero */
+  header.hero { padding: 72px 0 40px; }
+  .eyebrow { font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+  h1 { font-size: clamp(32px, 5vw, 52px); line-height: 1.15; margin: 8px 0 16px; letter-spacing: -0.01em; }
+  .lede { font-size: 19px; color: var(--ink-2); max-width: 720px; margin: 0; }
+  .meta { margin-top: 20px; font-size: 14px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px 18px; }
+
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-top: 36px; }
+  .tile { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; box-shadow: var(--shadow); }
+  .tile .label { font-size: 13px; color: var(--ink-2); }
+  .tile .value { font-size: 32px; font-weight: 700; line-height: 1.2; margin-top: 4px; }
+  .tile .sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+  /* sections */
+  section { padding: 56px 0 8px; scroll-margin-top: 60px; }
+  .sec-num { font-size: 13px; font-weight: 600; color: var(--muted); letter-spacing: .04em; }
+  h2 { font-size: 30px; line-height: 1.25; margin: 4px 0 12px; }
+  h3 { font-size: 18px; margin: 0 0 4px; }
+  .intro { color: var(--ink-2); max-width: 760px; margin: 0 0 24px; }
+
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); gap: 16px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; box-shadow: var(--shadow); min-width: 0; }
+  .card .desc { font-size: 14px; color: var(--ink-2); margin: 0 0 12px; }
+  .takeaway { margin-top: 12px; padding: 10px 14px; border-radius: 10px; background: var(--surface-2); font-size: 14px; color: var(--ink); }
+  .takeaway b { color: var(--ink); }
+
+  /* charts */
+  .chart { position: relative; width: 100%; }
+  .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .chart text { font-family: inherit; }
+  .tick { fill: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+  .cat { fill: var(--ink-2); font-size: 12px; }
+  .vlabel { fill: var(--ink); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .gridline { stroke: var(--grid); stroke-width: 1; }
+  .baseline { stroke: var(--axis); stroke-width: 1; }
+  .bar { transition: opacity .12s; }
+  .chart:hover .bar { opacity: .55; }
+  .chart .hit:hover + .bar, .chart .bar.on { opacity: 1; }
+  .tip {
+    position: absolute; pointer-events: none; z-index: 5; opacity: 0;
+    background: var(--ink); color: var(--page); font-size: 12.5px; line-height: 1.45;
+    padding: 7px 10px; border-radius: 8px; white-space: nowrap; transform: translate(-50%, calc(-100% - 10px));
+    transition: opacity .1s;
+  }
+  .tip.show { opacity: 1; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--ink-2); margin-bottom: 8px; }
+  .legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; background: var(--c); vertical-align: -1px; }
+  details.tbl { margin-top: 10px; font-size: 13px; }
+  details.tbl summary { cursor: pointer; color: var(--muted); }
+  table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+  th, td { text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--grid); }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--ink-2); font-weight: 600; font-size: 13px; }
+  .tbl-wrap { overflow-x: auto; }
+
+  /* pipeline */
+  .pipeline { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; counter-reset: step; }
+  .step { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; counter-increment: step; }
+  .step::before { content: counter(step); display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--s1); color: #fff; font-size: 12px; font-weight: 700; }
+  .step b { display: block; margin: 8px 0 2px; font-size: 15px; }
+  .step span { font-size: 13px; color: var(--ink-2); line-height: 1.5; display: block; }
+  .step code { font-size: 12px; }
+  code { background: var(--surface-2); padding: 1px 5px; border-radius: 5px; font-size: .9em; }
+
+  .feat-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: 12px; }
+  .fg { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+  .fg h3 { font-size: 15px; }
+  .fg p { font-size: 13px; color: var(--ink-2); margin: 4px 0 8px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 4px; }
+  .chips code { font-size: 11.5px; }
+
+  /* confusion matrix */
+  .cm { display: grid; grid-template-columns: auto 1fr 1fr; gap: 6px; font-variant-numeric: tabular-nums; font-size: 13px; }
+  .cm .h { color: var(--ink-2); font-weight: 600; display: grid; place-items: center; padding: 4px; text-align: center; }
+  .cm .c { border-radius: 10px; padding: 14px 10px; text-align: center; border: 1px solid var(--border); }
+  .cm .c b { display: block; font-size: 20px; }
+  .cm .c small { color: var(--ink-2); }
+  .cm .good { background: color-mix(in srgb, var(--s1) 16%, var(--surface)); }
+  .cm .bad { background: color-mix(in srgb, var(--s2) 14%, var(--surface)); }
+
+  .insights { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 12px; }
+  .ins { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px; }
+  .ins .n { font-size: 28px; font-weight: 700; color: var(--accent); line-height: 1.1; }
+  .ins h3 { margin-top: 6px; font-size: 16px; }
+  .ins p { font-size: 14px; color: var(--ink-2); margin: 4px 0 0; }
+
+  ul.clean { padding-left: 20px; margin: 0; }
+  ul.clean li { margin: 6px 0; color: var(--ink-2); }
+  ul.clean li b { color: var(--ink); }
+
+  .links-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 12px; }
+  .lnk { display: block; text-decoration: none; color: var(--ink); background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+  .lnk:hover { border-color: var(--accent); }
+  .lnk span { display: block; font-size: 13px; color: var(--ink-2); }
+  .note { font-size: 12.5px; color: var(--muted); margin-top: 8px; }
+
+  footer { padding: 48px 0 64px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+
+<nav class="top" aria-label="Sections">
+  <div class="wrap">
+    <span class="brand">Fraud Detect</span>
+    <div class="links">
+      <a href="#data">ข้อมูล</a>
+      <a href="#eda">EDA</a>
+      <a href="#pipeline">Pipeline</a>
+      <a href="#features">Features</a>
+      <a href="#model">ผลโมเดล</a>
+      <a href="#importance">ปัจจัยเสี่ยง</a>
+      <a href="#next">Next steps</a>
+      <a href="#resources">Resources</a>
+    </div>
+    <button class="theme-btn" id="themeBtn" type="button" aria-label="Toggle dark mode">◐</button>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Big Data Project · Team 3</div>
+    <h1>ตรวจจับธุรกรรมบัตรเครดิตทุจริต<br />จาก 24 ล้านรายการด้วย PySpark</h1>
+    <p class="lede">ใช้ Apache Spark บน Google Cloud สร้าง feature พฤติกรรมการใช้จ่ายย้อนหลังของผู้ใช้และบัตร แล้ว train Random Forest บนข้อมูลที่ fraud มีเพียง 0.12% โดยคง distribution จริงไว้ใน validation และ test set</p>
+    <div class="meta">
+      <span>Dataset: IBM TabFormer (synthetic) ปี 1991–2020</span>
+      <span>Stack: PySpark 3.5 · Spark ML · GCS / Dataproc</span>
+    </div>
+    <div class="tiles">
+      <div class="tile"><div class="label">ธุรกรรมทั้งหมด</div><div class="value">24.39M</div><div class="sub">2,000 users · 6,139 cards</div></div>
+      <div class="tile"><div class="label">ธุรกรรม fraud</div><div class="value">29,757</div><div class="sub">0.12% ของทั้งหมด (1 : 819)</div></div>
+      <div class="tile"><div class="label">Features ที่ใช้</div><div class="value">84</div><div class="sub">78 numeric + 6 categorical</div></div>
+      <div class="tile"><div class="label">F1 (fraud) บน test set</div><div class="value">54.5%</div><div class="sub">Precision 64.2% · Recall 47.3%</div></div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+<section id="data">
+  <div class="sec-num">01 · โจทย์และข้อมูล</div>
+  <h2>ปัญหา: เข็มในมหาสมุทรข้อมูล</h2>
+  <p class="intro">ข้อมูลประกอบด้วย 3 ตาราง คือ <b>transactions</b> (24.4 ล้านแถว, 2.35 GB), <b>cards</b> (6,146 ใบ) และ <b>users</b> (2,000 คน) ซึ่งมีขนาดใหญ่เกินกว่าที่ pandas บนเครื่องเดียวจะ join และทำ window feature ได้สบาย ๆ เราจึงใช้ Spark ทั้ง pipeline ส่วนความยากหลักคือ class imbalance เพราะ fraud มีเพียง 1 ใน 819 รายการ โมเดลที่ทายว่า "ปกติ" ทุกรายการจะได้ accuracy 99.88% แต่จับ fraud ไม่ได้เลย</p>
+  <div class="grid2">
+    <div class="card">
+      <h3>จำนวน fraud ต่อปี</h3>
+      <p class="desc">จำนวนรายการ fraud ในแต่ละปี (ปี 2020 มีข้อมูลถึงเดือน ก.พ. เท่านั้น)</p>
+      <div class="chart" id="c-year"></div>
+      <div class="takeaway">Fraud เกิดเป็น <b>ช่วง ๆ ไม่สม่ำเสมอ</b> เช่นปี 2011 มีเพียง 55 รายการ แต่ปี 2010 มี 3,835 รายการ ทำให้ต้องระวังว่าแต่ละ split มี fraud จากหลายช่วงเวลา</div>
+    </div>
+    <div class="card">
+      <h3>สัดส่วน class</h3>
+      <p class="desc">ทุก split คงสัดส่วนจริงไว้ ยกเว้น train ที่ลด non-fraud ลง</p>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Split</th><th>Rows</th><th>Fraud</th><th>Fraud %</th></tr></thead>
+          <tbody>
+            <tr><td>Train (เต็ม)</td><td>17,600,222</td><td>20,967</td><td>0.12%</td></tr>
+            <tr><td>Train (หลัง undersample)</td><td>7,053,114</td><td>20,967</td><td>0.30%</td></tr>
+            <tr><td>Validation</td><td>3,768,621</td><td>4,463</td><td>0.12%</td></tr>
+            <tr><td>Test (untouched)</td><td>3,774,549</td><td>4,561</td><td>0.12%</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="takeaway">แบ่งประมาณ <b>70 / 15 / 15</b> แล้ว undersample เฉพาะ non-fraud ใน train (เก็บไว้ 40%) โดยไม่แตะ validation และ test เพื่อให้ metric ที่รายงานสะท้อนสถานการณ์จริง</div>
+    </div>
+  </div>
+</section>
+
+<section id="eda">
+  <div class="sec-num">02 · Exploratory Data Analysis</div>
+  <h2>Fraud มีหน้าตาแบบไหน</h2>
+  <p class="intro">ตัวเลขทุกตัวในส่วนนี้คำนวณจากข้อมูลดิบครบทั้ง 24.4 ล้านแถว อัตรา fraud เฉลี่ยของทั้งชุดอยู่ที่ <b>0.122%</b> ซึ่งใช้เป็นเส้นอ้างอิงในกราฟ</p>
+  <div class="grid2">
+    <div class="card">
+      <h3>อัตรา fraud ตามช่องทางการจ่าย</h3>
+      <p class="desc">% ของธุรกรรมในแต่ละช่องทางที่เป็น fraud</p>
+      <div class="chart" id="c-chip"></div>
+      <div class="takeaway">ธุรกรรม <b>Online</b> มีอัตรา fraud 0.68% หรือ <b>16 เท่า</b>ของการรูดบัตร และคิดเป็น 62% ของ fraud ทั้งหมด ทั้งที่มีสัดส่วนเพียง 11% ของธุรกรรม</div>
+    </div>
+    <div class="card">
+      <h3>อัตรา fraud ตามตำแหน่งร้านค้า</h3>
+      <p class="desc">แยกตามข้อมูล merchant state ที่มีในธุรกรรม</p>
+      <div class="chart" id="c-loc"></div>
+      <div class="takeaway">ธุรกรรมกับร้าน<b>ต่างประเทศ</b>มีอัตรา fraud 4.1% หรือ <b>181 เท่า</b>ของร้านในสหรัฐฯ ส่วนการไม่มี zip/state (เกิดกับธุรกรรม online) คือสัญญาณที่โมเดลใช้มากที่สุด</div>
+    </div>
+    <div class="card">
+      <h3>อัตรา fraud ตามชั่วโมง</h3>
+      <p class="desc">% fraud ของธุรกรรมในแต่ละชั่วโมงของวัน</p>
+      <div class="chart" id="c-hour"></div>
+      <div class="takeaway">สัดส่วน fraud สูงสองช่วงคือ <b>ตี 3 – ตี 5</b> ซึ่งปกติแทบไม่มีคนใช้บัตร และ <b>9:00 – 14:00</b> (0.15–0.19%) ขณะที่หลัง 20:00 ต่ำกว่า 0.03%</div>
+    </div>
+    <div class="card">
+      <h3>อัตรา fraud ตามยอดเงิน</h3>
+      <p class="desc">% fraud ในแต่ละช่วงยอดเงิน (USD)</p>
+      <div class="chart" id="c-amt"></div>
+      <div class="takeaway">ยิ่งยอดสูง สัดส่วน fraud ยิ่งสูง โดยยอด <b>$250+</b> มีอัตรา ~1% และ median ของรายการ fraud อยู่ที่ <b>$71</b> เทียบกับ <b>$30</b> ของรายการปกติ</div>
+    </div>
+    <div class="card" style="grid-column: 1 / -1;">
+      <h3>ประเภทร้านค้า (MCC) ที่อัตรา fraud สูงสุด</h3>
+      <p class="desc">นับเฉพาะ MCC ที่มีธุรกรรมมากกว่า 20,000 รายการ</p>
+      <div class="chart" id="c-mcc"></div>
+      <div class="takeaway">กลุ่มที่เสี่ยงที่สุดคือ<b>ท่องเที่ยวและที่พัก</b> (โรงแรม Hilton, Marriott, Wyndham, เอเจนซีท่องเที่ยว, รถเช่า) และ<b>สวนสนุก</b> ซึ่งมีอัตรา fraud 0.7–1.4% หรือราว 6–12 เท่าของค่าเฉลี่ย</div>
+    </div>
+  </div>
+</section>
+
+<section id="pipeline">
+  <div class="sec-num">03 · Big Data Pipeline</div>
+  <h2>จาก CSV 2.35 GB สู่โมเดลใน Model Registry</h2>
+  <p class="intro">ทุกขั้นตอนเขียนด้วย PySpark DataFrame API และเก็บผลลัพธ์กลางเป็น Parquet บน Google Cloud Storage เพื่อให้รันต่อจาก checkpoint ได้โดยไม่ต้องคำนวณใหม่ทั้งหมด</p>
+  <div class="pipeline">
+    <div class="step"><b>Ingest</b><span>อ่าน CSV 3 ตารางเข้า Spark แล้ว cast ชนิดข้อมูลและล้างเครื่องหมาย <code>$</code></span></div>
+    <div class="step"><b>Join &amp; Clean</b><span>Join transactions กับ cards/users (broadcast ตารางเล็ก) แล้วสร้าง timestamp</span></div>
+    <div class="step"><b>Feature Eng.</b><span>ใช้ Window function ต่อ user และต่อ card ดูเฉพาะ<i>อดีต</i>ของแต่ละรายการ</span></div>
+    <div class="step"><b>Split</b><span>แบ่ง Train / Valid / Test ประมาณ 70/15/15 และบันทึกเป็น Parquet</span></div>
+    <div class="step"><b>Imbalance</b><span>เก็บ non-fraud ไว้ 40% และให้ class weight แก่ fraud เท่ากับ √(neg/pos) = 18.3</span></div>
+    <div class="step"><b>Train RF</b><span>120 trees, maxDepth 16, maxBins 64, minInstances 15, subsampling 0.8</span></div>
+    <div class="step"><b>Threshold</b><span>Grid 0.01–1.00 บน validation แล้วเลือกจุดที่ F1 สูงสุด = <b>0.56</b></span></div>
+    <div class="step"><b>Evaluate &amp; Save</b><span>ประเมินบน test ครั้งเดียว แล้วบันทึก model, metrics และ feature importance ลง GCS</span></div>
+  </div>
+  <p class="note">ขั้น train บนเครื่อง local ติด Java OOM จึงย้ายไปรันบน Spark cluster (GCP) โดยปรับ repartition และ persist แบบ MEMORY_AND_DISK</p>
+</section>
+
+<section id="features">
+  <div class="sec-num">04 · Feature Engineering</div>
+  <h2>84 features ใน 5 กลุ่ม</h2>
+  <p class="intro">หลักสำคัญคือ<b>ป้องกัน data leakage</b> โดย feature พฤติกรรมทุกตัวคำนวณจาก window <code>rowsBetween(…, -1)</code> ซึ่งใช้เฉพาะธุรกรรมที่เกิด<i>ก่อนหน้า</i>รายการนั้น เหมือนข้อมูลที่ระบบจะมีจริงในขณะอนุมัติบัตร</p>
+  <div class="feat-groups">
+    <div class="fg"><h3>ธุรกรรม</h3><p>ยอดเงิน ช่องทาง และข้อมูลที่หายไป</p><div class="chips"><code>log_amount</code><code>is_online</code><code>is_refund</code><code>zip_missing</code><code>has_error</code><code>mcc</code></div></div>
+    <div class="fg"><h3>เวลา</h3><p>รวม cyclic encoding ของชั่วโมงและวัน</p><div class="chips"><code>hour_sin/cos</code><code>is_night</code><code>is_weekend</code><code>day_of_week</code></div></div>
+    <div class="fg"><h3>พฤติกรรมผู้ใช้</h3><p>เทียบกับประวัติ 5 / 20 รายการ และ 1 ชม. ล่าสุด</p><div class="chips"><code>user_amount_zscore</code><code>user_seconds_since_prev_txn</code><code>user_txn_count_last_1h</code><code>user_online_count_prev_20</code></div></div>
+    <div class="fg"><h3>พฤติกรรมบัตร</h3><p>ชุดเดียวกันแต่ระดับบัตรแต่ละใบ</p><div class="chips"><code>card_amount_zscore</code><code>card_seconds_since_prev_txn</code><code>card_txn_count_last_1h</code></div></div>
+    <div class="fg"><h3>โปรไฟล์และบริบท</h3><p>ข้อมูลลูกค้า บัตร และความสอดคล้องของตำแหน่ง</p><div class="chips"><code>is_same_state_as_user</code><code>amount_over_credit_limit_ratio</code><code>income_per_card</code><code>fico_score</code></div></div>
+  </div>
+</section>
+
+<section id="model">
+  <div class="sec-num">05 · ผลลัพธ์ของโมเดล</div>
+  <h2>จับ fraud ได้เกือบครึ่ง และแม่นยำ 64%</h2>
+  <p class="intro">เราใช้ <b>F1 ของ class fraud</b> เป็นตัวชี้วัดหลัก ไม่ใช้ accuracy ซึ่งสูงถึง 99.9% ในทุก split อยู่แล้ว ผลบน validation และ test ต่างกันเพียง ~1 จุด แสดงว่าโมเดล generalize ได้ดี</p>
+  <div class="grid2">
+    <div class="card">
+      <h3>Precision / Recall / F1 (class fraud)</h3>
+      <p class="desc">ที่ threshold 0.56 แยกตาม split</p>
+      <div class="legend" id="lg-split"></div>
+      <div class="chart" id="c-split"></div>
+      <div class="takeaway">ช่องว่างระหว่าง Train (F1 70%) กับ Test (54%) เป็นผลจาก train ที่ผ่านการ undersample จึงง่ายกว่า แต่ค่า <b>Valid ≈ Test</b> ยืนยันว่าโมเดลไม่ได้ overfit จนใช้งานไม่ได้</div>
+    </div>
+    <div class="card">
+      <h3>Confusion matrix · Test set</h3>
+      <p class="desc">3,774,549 ธุรกรรม · threshold 0.56</p>
+      <div class="cm">
+        <div></div><div class="h">ทาย: ปกติ</div><div class="h">ทาย: Fraud</div>
+        <div class="h">จริง: ปกติ</div>
+        <div class="c good"><b>3,768,785</b><small>True negative</small></div>
+        <div class="c bad"><b>≈1,203</b><small>False positive · ลูกค้าโดนบล็อกผิด</small></div>
+        <div class="h">จริง: Fraud</div>
+        <div class="c bad"><b>≈2,403</b><small>False negative · หลุดรอด</small></div>
+        <div class="c good"><b>≈2,158</b><small>True positive · จับได้</small></div>
+      </div>
+      <div class="takeaway">ทุก ๆ <b>10 ครั้ง</b>ที่โมเดลแจ้งเตือน จะเป็น fraud จริง <b>6–7 ครั้ง</b> และมีลูกค้าปกติโดนแจ้งเตือนผิดเพียง <b>0.03%</b></div>
+      <p class="note">ค่า ≈ ประมาณจาก precision, recall และ support ที่ notebook รายงาน</p>
+    </div>
+    <div class="card">
+      <h3>เทียบกับ Kaggle baseline</h3>
+      <p class="desc">Validation set, class fraud</p>
+      <div class="legend" id="lg-base"></div>
+      <div class="chart" id="c-base"></div>
+      <div class="takeaway">Baseline ทำ undersample จน validation เหลือสัดส่วน 80:20 ซึ่งต่างจากความจริงมาก ส่วนโมเดลของเราประเมินบนสัดส่วนจริง 99.88:0.12 แต่ยังได้ F1 สูงกว่า <b>+37 จุด</b></div>
+      <p class="note">Baseline: <a href="https://www.kaggle.com/code/mimansari/ibm-credit-card-fraud-detection-precision-0-14" target="_blank" rel="noopener">IBM Credit Card Fraud Detection (Kaggle)</a></p>
+    </div>
+    <div class="card">
+      <h3>เส้นทางการพัฒนาโมเดล</h3>
+      <p class="desc">F1 ของ class fraud บน validation: local RF 36 features → เพิ่ม class weight (thr 0.60) → cluster RF 84 features (thr 0.56)</p>
+      <div class="chart" id="c-iter"></div>
+      <div class="takeaway">ตัวที่เพิ่มผลได้มากที่สุดคือ <b>behavioral features ระดับ user/card</b> และการได้ train บน cluster ด้วยข้อมูลที่มากขึ้น 4 เท่า ไม่ใช่การปรับ hyperparameter อย่างเดียว</div>
+      <p class="note">รอบ local ใช้ train sample 10% และ feature set 36 ตัว จึงเทียบกับรอบ cluster ได้แบบคร่าว ๆ เท่านั้น</p>
+    </div>
+  </div>
+</section>
+
+<section id="importance">
+  <div class="sec-num">06 · Feature Importance &amp; Business Insight</div>
+  <h2>โมเดลมองหาอะไร</h2>
+  <p class="intro">Feature importance (Gini) จาก Random Forest ชุดสุดท้าย แสดง 15 อันดับแรก</p>
+  <div class="card">
+    <div class="chart" id="c-fi"></div>
+  </div>
+  <div class="insights" style="margin-top:16px">
+    <div class="ins"><div class="n">01</div><h3>ข้อมูลร้านค้าไม่ครบ</h3><p><code>zip_missing</code> และ <code>merchant_state_missing</code> เป็นสัญญาณอันดับหนึ่ง เพราะธุรกรรมที่ไม่ระบุตำแหน่งร้านมีอัตรา fraud 0.86% สูงกว่าปกติ 38 เท่า</p></div>
+    <div class="ins"><div class="n">02</div><h3>ตำแหน่งและช่องทาง</h3><p>การใช้บัตรนอกรัฐที่เจ้าของบัตรอยู่ (<code>is_same_state_as_user</code>) และการซื้อออนไลน์ เพิ่มความเสี่ยงอย่างชัดเจน</p></div>
+    <div class="ins"><div class="n">03</div><h3>ประเภทร้านค้าและ error</h3><p>MCC กลุ่มโรงแรม ท่องเที่ยว และสวนสนุก รวมถึงธุรกรรมที่เกิด error (เช่น PIN ผิด) มีความเสี่ยงสูงกว่าปกติ</p></div>
+    <div class="ins"><div class="n">04</div><h3>ยอดใช้จ่ายผิดจากนิสัยเดิม</h3><p>Z-score ของยอดเงินเทียบกับประวัติของบัตรและผู้ใช้ มีความหมายมากกว่ายอดเงินดิบ ระบบจึงควรดูว่า "ผิดปกติสำหรับคนนี้" ไม่ใช่แค่ "ยอดสูง"</p></div>
+  </div>
+</section>
+
+<section id="next">
+  <div class="sec-num">07 · ข้อจำกัดและงานต่อไป</div>
+  <h2>ถ้าจะนำไปใช้จริง</h2>
+  <div class="grid2">
+    <div class="card">
+      <h3>ข้อจำกัด</h3>
+      <ul class="clean">
+        <li><b>Synthetic data</b> — ข้อมูล IBM TabFormer สร้างจาก simulation ดังนั้น pattern บางอย่าง เช่นการกระจุกตัวของ fraud ในบางปี อาจไม่ตรงกับโลกจริง</li>
+        <li><b>Recall 47%</b> — ยังมี fraud ราวครึ่งหนึ่งที่หลุดรอด ต้องใช้คู่กับกฎ (rule-based) หรือการตรวจสอบโดยคน</li>
+        <li><b>Validation ยังไม่ใช่ production</b> — ยังไม่ได้ทดสอบแบบ train ด้วยอดีตแล้วทำนายเดือนถัดไปต่อเนื่อง (rolling) ซึ่งใกล้กับการใช้งานจริงกว่า</li>
+        <li><b>Threshold จาก F1</b> — ยังไม่ได้คิดต้นทุนจริงของ false negative เทียบกับ false positive</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Next steps</h3>
+      <ul class="clean">
+        <li>ใช้ <b>PR-AUC</b> และ recall@precision เป้าหมาย (เช่น precision ≥ 20%) เป็น metric หลัก</li>
+        <li>เลือก threshold จาก <b>expected cost</b> โดยเทียบมูลค่าความเสียหายจาก fraud กับต้นทุนการตรวจสอบและประสบการณ์ลูกค้า</li>
+        <li>ทำ <b>temporal validation</b> แบบ rolling window ตามเดือน เพื่อจำลอง production</li>
+        <li>ลอง <b>Gradient-boosted trees</b> (GBT / XGBoost on Spark) และ feature ด้าน merchant risk score</li>
+        <li>ทำ <b>monitoring</b> สำหรับ data drift และ retrain อัตโนมัติผ่าน model registry ที่มีอยู่แล้ว</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="resources">
+  <div class="sec-num">08 · Resources</div>
+  <h2>รายละเอียดเพิ่มเติม</h2>
+  <div class="links-grid">
+    <a class="lnk" href="reports/eda.html">EDA notebook<span>Exploratory analysis ฉบับเต็ม (HTML)</span></a>
+    <a class="lnk" href="reports/model_training.html">Model training notebook<span>Random Forest บน Spark cluster (HTML)</span></a>
+    <a class="lnk" href="reports/model_insight.html">Model interpretation<span>บทวิเคราะห์ผลและ business insight</span></a>
+    <a class="lnk" href="https://github.com/tpootth/fraud_detect">Source code<span>Notebooks ทั้งหมดบน GitHub</span></a>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">Big Data Project · Credit Card Fraud Detection with PySpark · Data: IBM TabFormer synthetic credit card transactions</div>
+</footer>
+
+<script>
+/* ---------- data (computed from raw CSV / notebook outputs) ---------- */
+const BASE_RATE = 29757 / 24386900;
+const D = {
+  year: [[1996,10],[1997,32],[1998,32],[1999,24],[2000,171],[2001,354],[2002,139],[2003,311],[2004,620],[2005,229],[2006,1118],[2007,1881],[2008,3710],[2009,1140],[2010,3835],[2011,55],[2012,1333],[2013,2018],[2014,1052],[2015,3281],[2016,3579],[2017,255],[2018,2491],[2019,2087],[2020,0]],
+  chip: [["Online",2713220,18349],["Chip",6287598,4836],["Swipe",15386082,6572]],
+  loc: [["ต่างประเทศ",157314,6503],["ไม่ระบุ (online)",2720821,18349],["ในสหรัฐฯ",21508765,4905]],
+  hour: [[0,235608,120],[1,213411,185],[2,214075,231],[3,183370,342],[4,203550,372],[5,321588,505],[6,1347058,855],[7,1644618,1597],[8,1616851,1674],[9,1598928,2178],[10,1664499,3116],[11,1736005,3146],[12,1739868,2933],[13,1681236,2837],[14,1632864,2408],[15,1559102,2155],[16,1589776,1769],[17,900509,1076],[18,837841,888],[19,847344,801],[20,793351,216],[21,765024,157],[22,759960,88],[23,300464,108]],
+  amt: [["คืนเงิน",1244683,1125],["0–10",5181126,4527],["10–50",9553630,6343],["50–100",5493950,6294],["100–250",2534297,7898],["250–500",299577,2825],["500–1k",62781,564],["1k+",16856,181]],
+  mcc: [["7996 สวนสนุก / งานรื่นเริง",20221,290],["3722 Wyndham Hotels",28914,294],["3504 Hilton Hotels",29176,296],["7011 โรงแรม / ที่พัก",31358,302],["3596 โรงแรม / ที่พัก",26999,243],["3509 Marriott Hotels",29784,265],["3780 โรงแรม / ที่พัก",27071,222],["3359 Payless Car Rental",20244,165],["3684 Budget Host Inns",29866,238],["5815 Digital goods",115247,879]],
+  split: { metrics: ["Precision","Recall","F1"], series: [["Train",[85.95,59.66,70.43]],["Validation",[64.91,48.62,55.60]],["Test",[64.21,47.31,54.48]]] },
+  base: { metrics: ["Precision","Recall","F1"], series: [["Kaggle baseline",[14,32,19]],["โมเดลของเรา",[64.91,48.62,55.60]]] },
+  iter: [["Local baseline",23.67],["+ class weight",27.59],["Cluster RF V2",55.60]],
+  fi: [["zip_missing",.0919],["mcc",.0622],["is_same_state_as_user",.0453],["merchant_state_missing",.0379],["is_online",.0362],["errors (one-hot)",.0324],["year",.0263],["abs_amount",.0255],["card_amount_zscore",.0254],["log_amount",.0232],["card_seconds_since_prev_txn",.0227],["state (one-hot)",.0217],["user_amount_zscore",.0215],["user_abs_amount_dev",.0202],["amount",.0180]]
+};
+
+/* ---------- tiny SVG chart helpers ---------- */
+const NS = "http://www.w3.org/2000/svg";
+const fmtInt = n => n.toLocaleString("en-US");
+const fmtPct = (v, d = 2) => (v * 100).toFixed(d) + "%";
+function el(tag, attrs = {}, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function niceMax(v) {
+  const p = Math.pow(10, Math.floor(Math.log10(v)));
+  const n = v / p;
+  return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * p;
+}
+// rounded-top bar path anchored to baseline
+function barPathV(x, y, w, h, r = 4) {
+  r = Math.min(r, w / 2, h);
+  return `M${x},${y + h}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h}Z`;
+}
+function barPathH(x, y, w, h, r = 4) {
+  r = Math.min(r, h / 2, w);
+  return `M${x},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h - r}Q${x + w},${y + h} ${x + w - r},${y + h}H${x}Z`;
+}
+function makeTip(host) {
+  const t = document.createElement("div");
+  t.className = "tip"; host.appendChild(t);
+  return {
+    show(html, x, y) { t.innerHTML = html; t.style.left = x + "px"; t.style.top = y + "px"; t.classList.add("show"); },
+    hide() { t.classList.remove("show"); }
+  };
+}
+function addTable(host, head, rows) {
+  const d = document.createElement("details"); d.className = "tbl";
+  d.innerHTML = `<summary>ดูเป็นตาราง</summary><div class="tbl-wrap"><table><thead><tr>${head.map(h => `<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+  host.after(d);
+}
+function hover(host, tip, hit, bar, html, cx, cy) {
+  const on = () => { bar.classList.add("on"); const s = host.querySelector("svg"); const k = s.getBoundingClientRect().width / s.viewBox.baseVal.width; tip.show(html, cx * k, cy * k); };
+  const off = () => { bar.classList.remove("on"); tip.hide(); };
+  hit.addEventListener("mouseenter", on); hit.addEventListener("mouseleave", off);
+  hit.addEventListener("touchstart", on, { passive: true });
+}
+
+/* vertical single-series bars */
+function vbars(id, items, { value, label, tipHtml, fmtTick, refLine, labelEvery = 1, showLabelsFor = [] }) {
+  const host = document.getElementById(id); const tip = makeTip(host);
+  const W = Math.max(280, host.clientWidth || 520), H = 260, m = { t: 18, r: 8, b: 30, l: 46 };
+  const iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const max = niceMax(Math.max(...items.map(value), refLine || 0) * 1.08);
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img" }, host);
+  for (let i = 0; i <= 4; i++) {
+    const v = max * i / 4, y = m.t + ih - ih * i / 4;
+    el("line", { x1: m.l, x2: W - m.r, y1: y, y2: y, class: i ? "gridline" : "baseline" }, svg);
+    el("text", { x: m.l - 6, y: y + 4, "text-anchor": "end", class: "tick" }, svg).textContent = fmtTick(v);
+  }
+  const step = iw / items.length, gap = Math.max(2, step * 0.18), bw = step - gap;
+  items.forEach((d, i) => {
+    const v = value(d), h = ih * v / max, x = m.l + i * step + gap / 2, y = m.t + ih - h;
+    const hit = el("rect", { x: m.l + i * step, y: m.t, width: step, height: ih, fill: "transparent", class: "hit" }, svg);
+    const bar = el("path", { d: barPathV(x, y, bw, Math.max(h, 0.01)), fill: "var(--s1)", class: "bar" }, svg);
+    hover(host, tip, hit, bar, tipHtml(d), x + bw / 2, y);
+    if (i % labelEvery === 0) el("text", { x: x + bw / 2, y: H - m.b + 16, "text-anchor": "middle", class: "tick" }, svg).textContent = label(d);
+    if (showLabelsFor.includes(i)) el("text", { x: x + bw / 2, y: y - 5, "text-anchor": "middle", class: "vlabel" }, svg).textContent = fmtTick(v);
+  });
+  if (refLine) {
+    const y = m.t + ih - ih * refLine / max;
+    el("line", { x1: m.l, x2: W - m.r, y1: y, y2: y, stroke: "var(--ink-2)", "stroke-width": 1, "stroke-dasharray": "4 3" }, svg);
+    el("text", { x: W - m.r, y: y - 5, "text-anchor": "end", class: "tick" }, svg).textContent = "ค่าเฉลี่ย 0.12%";
+  }
+  return host;
+}
+
+/* horizontal single-series bars */
+function hbars(id, items, { value, label, valueLabel, tipHtml, labelW = 170, refLine, fmtRef }) {
+  const host = document.getElementById(id); const tip = makeTip(host);
+  const row = 30, W = Math.max(280, host.clientWidth || 560);
+  labelW = Math.min(labelW, Math.round(W * 0.45));
+  const m = { t: 6, r: 56, b: 6, l: labelW };
+  const H = m.t + m.b + row * items.length, iw = W - m.l - m.r;
+  const max = Math.max(...items.map(value), refLine || 0);
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img" }, host);
+  el("line", { x1: m.l, x2: m.l, y1: m.t, y2: H - m.b, class: "baseline" }, svg);
+  items.forEach((d, i) => {
+    const v = value(d), w = iw * v / max, y = m.t + i * row, bh = row - 10;
+    const hit = el("rect", { x: 0, y, width: W, height: row, fill: "transparent", class: "hit" }, svg);
+    const bar = el("path", { d: barPathH(m.l, y + 5, Math.max(w, 0.5), bh), fill: "var(--s1)", class: "bar" }, svg);
+    hover(host, tip, hit, bar, tipHtml(d), m.l + w / 2, y + 5);
+    const lt = el("text", { x: m.l - 8, y: y + row / 2 + 4, "text-anchor": "end", class: "cat" }, svg);
+    lt.textContent = label(d);
+    while (lt.getComputedTextLength() > m.l - 12 && lt.textContent.length > 4) lt.textContent = lt.textContent.slice(0, -2) + "…";
+    el("text", { x: m.l + w + 6, y: y + row / 2 + 4, class: "vlabel" }, svg).textContent = valueLabel(d);
+  });
+  if (refLine) {
+    const x = m.l + iw * refLine / max;
+    el("line", { x1: x, x2: x, y1: m.t, y2: H - m.b, stroke: "var(--ink-2)", "stroke-width": 1, "stroke-dasharray": "4 3" }, svg);
+  }
+  return host;
+}
+
+/* grouped bars, 2-3 series, percent scale */
+function gbars(id, legendId, data, colors) {
+  const host = document.getElementById(id); const tip = makeTip(host);
+  document.getElementById(legendId).innerHTML = data.series.map((s, i) => `<span style="--c:${colors[i]}">${s[0]}</span>`).join("");
+  const W = Math.max(280, host.clientWidth || 520), H = 250, m = { t: 22, r: 8, b: 30, l: 40 }, iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img" }, host);
+  for (let i = 0; i <= 4; i++) {
+    const y = m.t + ih - ih * i / 4;
+    el("line", { x1: m.l, x2: W - m.r, y1: y, y2: y, class: i ? "gridline" : "baseline" }, svg);
+    el("text", { x: m.l - 6, y: y + 4, "text-anchor": "end", class: "tick" }, svg).textContent = (25 * i) + "%";
+  }
+  const gw = iw / data.metrics.length, n = data.series.length, pad = gw * 0.2, bw = (gw - pad) / n;
+  data.metrics.forEach((mt, j) => {
+    el("text", { x: m.l + j * gw + gw / 2, y: H - m.b + 18, "text-anchor": "middle", class: "cat" }, svg).textContent = mt;
+    data.series.forEach((s, i) => {
+      const v = s[1][j], h = ih * v / 100, x = m.l + j * gw + pad / 2 + i * bw, y = m.t + ih - h;
+      const hit = el("rect", { x, y: m.t, width: bw, height: ih, fill: "transparent", class: "hit" }, svg);
+      const bar = el("path", { d: barPathV(x + 1, y, bw - 2, h), fill: colors[i], class: "bar" }, svg);
+      hover(host, tip, hit, bar, `<b>${s[0]}</b><br>${mt}: ${v.toFixed(1)}%`, x + bw / 2, y);
+      el("text", { x: x + bw / 2, y: y - 5, "text-anchor": "middle", class: "vlabel", "font-size": 11 }, svg).textContent = Math.round(v);
+    });
+  });
+  addTable(host, ["Split / Model", ...data.metrics], data.series.map(s => [s[0], ...s[1].map(v => v.toFixed(2) + "%")]));
+}
+
+/* ---------- render ---------- */
+function render() {
+  document.querySelectorAll(".chart").forEach(c => c.innerHTML = "");
+  document.querySelectorAll("details.tbl").forEach(d => d.remove());
+  const css = getComputedStyle(document.documentElement);
+  const C1 = css.getPropertyValue("--s1").trim(), C2 = css.getPropertyValue("--s2").trim(), C3 = css.getPropertyValue("--axis").trim();
+
+  const yr = vbars("c-year", D.year, {
+    value: d => d[1], label: d => "'" + String(d[0]).slice(2), labelEvery: 4,
+    fmtTick: v => v >= 1000 ? (v / 1000) + "k" : String(Math.round(v)),
+    tipHtml: d => `<b>${d[0]}</b><br>${fmtInt(d[1])} รายการ fraud`
+  });
+  addTable(yr, ["ปี", "Fraud"], D.year.map(d => [d[0], fmtInt(d[1])]));
+
+  const rate = d => d[2] / d[1];
+  const rateTip = d => `<b>${d[0]}</b><br>อัตรา fraud ${fmtPct(rate(d), 3)}<br>${fmtInt(d[2])} / ${fmtInt(d[1])} รายการ`;
+  const rateRows = arr => arr.map(d => [d[0], fmtInt(d[1]), fmtInt(d[2]), fmtPct(rate(d), 3)]);
+
+  const ch = hbars("c-chip", D.chip, { value: rate, label: d => d[0], valueLabel: d => fmtPct(rate(d)), tipHtml: rateTip, labelW: 70, refLine: BASE_RATE });
+  addTable(ch, ["ช่องทาง", "ธุรกรรม", "Fraud", "อัตรา"], rateRows(D.chip));
+
+  const lc = hbars("c-loc", D.loc, { value: rate, label: d => d[0], valueLabel: d => fmtPct(rate(d)), tipHtml: rateTip, labelW: 120, refLine: BASE_RATE });
+  addTable(lc, ["ตำแหน่งร้าน", "ธุรกรรม", "Fraud", "อัตรา"], rateRows(D.loc));
+
+  const hr = vbars("c-hour", D.hour, {
+    value: rate, label: d => String(d[0]).padStart(2, "0"), labelEvery: 3, refLine: BASE_RATE,
+    fmtTick: v => (v * 100).toFixed(2) + "%",
+    tipHtml: d => `<b>${String(d[0]).padStart(2, "0")}:00–${String(d[0]).padStart(2, "0")}:59</b><br>อัตรา fraud ${fmtPct(rate(d), 3)}<br>${fmtInt(d[2])} / ${fmtInt(d[1])} รายการ`
+  });
+  addTable(hr, ["ชั่วโมง", "ธุรกรรม", "Fraud", "อัตรา"], D.hour.map(d => [String(d[0]).padStart(2, "0") + ":00", fmtInt(d[1]), fmtInt(d[2]), fmtPct(rate(d), 3)]));
+
+  const am = vbars("c-amt", D.amt, {
+    value: rate, label: d => d[0], refLine: BASE_RATE,
+    fmtTick: v => (v * 100).toFixed(2) + "%", showLabelsFor: [5, 6, 7],
+    tipHtml: rateTip
+  });
+  addTable(am, ["ยอดเงิน", "ธุรกรรม", "Fraud", "อัตรา"], rateRows(D.amt));
+
+  const mc = hbars("c-mcc", D.mcc, { value: rate, label: d => d[0], valueLabel: d => fmtPct(rate(d)), tipHtml: rateTip, labelW: 210, refLine: BASE_RATE });
+  addTable(mc, ["MCC", "ธุรกรรม", "Fraud", "อัตรา"], rateRows(D.mcc));
+
+  gbars("c-split", "lg-split", D.split, [C3, C1, C2]);
+  gbars("c-base", "lg-base", D.base, [C3, C1]);
+
+  const it = hbars("c-iter", D.iter, { value: d => d[1], label: d => d[0], valueLabel: d => d[1].toFixed(1) + "%", tipHtml: d => `<b>${d[0]}</b><br>Validation F1 ${d[1].toFixed(2)}%`, labelW: 130 });
+  addTable(it, ["รอบการทดลอง", "Validation F1"], D.iter.map(d => [d[0], d[1].toFixed(2) + "%"]));
+
+  const fi = hbars("c-fi", D.fi, { value: d => d[1], label: d => d[0], valueLabel: d => (d[1] * 100).toFixed(1) + "%", tipHtml: d => `<b>${d[0]}</b><br>importance ${d[1].toFixed(4)}`, labelW: 210 });
+  addTable(fi, ["Feature", "Importance"], D.fi.map(d => [d[0], d[1].toFixed(4)]));
+}
+
+/* theme toggle */
+const btn = document.getElementById("themeBtn");
+function setTheme(t) {
+  if (t) document.documentElement.setAttribute("data-theme", t); else document.documentElement.removeAttribute("data-theme");
+  try { t ? localStorage.setItem("theme", t) : localStorage.removeItem("theme"); } catch (e) {}
+  render();
+}
+try { const s = localStorage.getItem("theme"); if (s) document.documentElement.setAttribute("data-theme", s); } catch (e) {}
+btn.addEventListener("click", () => {
+  const dark = document.documentElement.getAttribute("data-theme") === "dark" ||
+    (!document.documentElement.hasAttribute("data-theme") && matchMedia("(prefers-color-scheme: dark)").matches);
+  setTheme(dark ? "light" : "dark");
+});
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
+let lastW = innerWidth, rt;
+addEventListener("resize", () => { if (innerWidth === lastW) return; lastW = innerWidth; clearTimeout(rt); rt = setTimeout(render, 150); });
+render();
+</script>
+</body>
+</html>
