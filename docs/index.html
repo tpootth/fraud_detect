@@ -4,619 +4,692 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Credit Card Fraud Detection</title>
-<meta name="description" content="Credit card fraud detection on 24 million transactions with PySpark Random Forest — Big Data project presentation." />
+<meta name="description" content="Credit card fraud detection on 24 million transactions with PySpark — visual project presentation built with D3.js." />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+<script src="data.js"></script>
 <style>
   :root {
     color-scheme: light;
-    --page: #f9f9f7;
-    --surface: #fcfcfb;
-    --surface-2: #f3f2ee;
-    --ink: #0b0b0b;
-    --ink-2: #52514e;
-    --muted: #898781;
-    --grid: #e1e0d9;
-    --axis: #c3c2b7;
-    --border: rgba(11, 11, 11, 0.10);
-    --s1: #2a78d6;
-    --s2: #eb6834;
-    --s1-soft: #cde2fb;
-    --accent: #2a78d6;
-    --critical: #d03b3b;
-    --good-text: #006300;
-    --shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.05);
+    --page: #f9f9f7; --surface: #fcfcfb; --surface-2: #f1f0ec;
+    --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+    --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,.10);
+    --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4;
+    --empty: #e6e5df; --shadow: 0 1px 2px rgba(0,0,0,.04), 0 10px 30px rgba(0,0,0,.05);
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
       color-scheme: dark;
-      --page: #0d0d0d; --surface: #1a1a19; --surface-2: #232321;
-      --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
-      --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
-      --s1: #3987e5; --s2: #d95926; --s1-soft: #184f95; --accent: #6da7ec;
-      --critical: #e66767; --good-text: #0ca30c; --shadow: none;
+      --page: #0d0d0d; --surface: #1a1a19; --surface-2: #242422;
+      --ink: #fff; --ink-2: #c3c2b7; --muted: #898781;
+      --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,.10);
+      --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181;
+      --empty: #2c2c2a; --shadow: none;
     }
   }
   :root[data-theme="dark"] {
     color-scheme: dark;
-    --page: #0d0d0d; --surface: #1a1a19; --surface-2: #232321;
-    --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
-    --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
-    --s1: #3987e5; --s2: #d95926; --s1-soft: #184f95; --accent: #6da7ec;
-    --critical: #e66767; --good-text: #0ca30c; --shadow: none;
+    --page: #0d0d0d; --surface: #1a1a19; --surface-2: #242422;
+    --ink: #fff; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,.10);
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181;
+    --empty: #2c2c2a; --shadow: none;
   }
-
   * { box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
-  body {
-    margin: 0; background: var(--page); color: var(--ink);
-    font-family: "IBM Plex Sans Thai", system-ui, -apple-system, "Segoe UI", sans-serif;
-    font-size: 16px; line-height: 1.65;
-  }
-  a { color: var(--accent); }
-  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+  body { margin: 0; background: var(--page); color: var(--ink);
+    font-family: "IBM Plex Sans Thai", system-ui, -apple-system, "Segoe UI", sans-serif; line-height: 1.6; }
+  a { color: var(--s1); }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 16px; }
 
-  /* nav */
-  nav.top {
-    position: sticky; top: 0; z-index: 10;
-    background: color-mix(in srgb, var(--page) 88%, transparent);
-    backdrop-filter: blur(8px); border-bottom: 1px solid var(--border);
-  }
-  nav.top .wrap { display: flex; align-items: center; gap: 20px; height: 52px; }
-  nav.top .brand { font-weight: 700; white-space: nowrap; }
+  nav.top { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--page) 88%, transparent);
+    backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); }
+  nav.top .wrap { display: flex; align-items: center; gap: 18px; height: 50px; }
+  nav.top b { white-space: nowrap; }
   nav.top .links { display: flex; gap: 16px; overflow-x: auto; scrollbar-width: none; flex: 1; }
   nav.top .links a { color: var(--ink-2); text-decoration: none; font-size: 14px; white-space: nowrap; }
   nav.top .links a:hover { color: var(--ink); }
-  .theme-btn {
-    border: 1px solid var(--border); background: var(--surface); color: var(--ink-2);
-    border-radius: 8px; padding: 4px 10px; font: inherit; font-size: 13px; cursor: pointer;
-  }
+  .theme-btn { border: 1px solid var(--border); background: var(--surface); color: var(--ink-2); border-radius: 8px; padding: 3px 10px; cursor: pointer; font: inherit; }
 
-  /* hero */
-  header.hero { padding: 72px 0 40px; }
-  .eyebrow { font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
-  h1 { font-size: clamp(32px, 5vw, 52px); line-height: 1.15; margin: 8px 0 16px; letter-spacing: -0.01em; }
-  .lede { font-size: 19px; color: var(--ink-2); max-width: 720px; margin: 0; }
-  .meta { margin-top: 20px; font-size: 14px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px 18px; }
+  header { padding: 64px 0 24px; }
+  .eyebrow { font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--s1); }
+  h1 { font-size: clamp(30px, 5vw, 50px); line-height: 1.15; margin: 8px 0 12px; }
+  .lede { color: var(--ink-2); font-size: 18px; margin: 0; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 28px; }
+  .tile { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px; box-shadow: var(--shadow); }
+  .tile .l { font-size: 13px; color: var(--ink-2); }
+  .tile .v { font-size: 30px; font-weight: 700; line-height: 1.2; }
+  .tile .s { font-size: 12.5px; color: var(--muted); }
 
-  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-top: 36px; }
-  .tile { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; box-shadow: var(--shadow); }
-  .tile .label { font-size: 13px; color: var(--ink-2); }
-  .tile .value { font-size: 32px; font-weight: 700; line-height: 1.2; margin-top: 4px; }
-  .tile .sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  section { padding: 44px 0 0; scroll-margin-top: 56px; }
+  .num { font-size: 12.5px; font-weight: 600; color: var(--muted); letter-spacing: .05em; }
+  h2 { font-size: 28px; margin: 2px 0 16px; line-height: 1.25; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 480px), 1fr)); gap: 16px; }
+  .grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 16px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 18px 20px 16px; box-shadow: var(--shadow); min-width: 0; }
+  .card.wide { grid-column: 1 / -1; }
+  .card h3 { margin: 0; font-size: 16.5px; }
+  .card .cap { margin: 2px 0 10px; font-size: 13.5px; color: var(--ink-2); }
+  .card .cap b { color: var(--ink); }
+  .viz { position: relative; width: 100%; }
+  .viz svg { display: block; overflow: visible; }
+  .viz text { font-family: inherit; }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--ink-2); margin: 0 0 6px; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+  .legend.lines i { height: 3px; border-radius: 2px; vertical-align: 3px; width: 14px; }
 
-  /* sections */
-  section { padding: 56px 0 8px; scroll-margin-top: 60px; }
-  .sec-num { font-size: 13px; font-weight: 600; color: var(--muted); letter-spacing: .04em; }
-  h2 { font-size: 30px; line-height: 1.25; margin: 4px 0 12px; }
-  h3 { font-size: 18px; margin: 0 0 4px; }
-  .intro { color: var(--ink-2); max-width: 760px; margin: 0 0 24px; }
+  .axis text { fill: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+  .axis line, .axis path { stroke: var(--axis); }
+  .gridl line { stroke: var(--grid); }
+  .gridl path, .gridl text { display: none; }
+  .lbl { fill: var(--ink-2); font-size: 11.5px; }
+  .lbl-b { fill: var(--ink); font-size: 12px; font-weight: 600; }
 
-  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); gap: 16px; }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; box-shadow: var(--shadow); min-width: 0; }
-  .card .desc { font-size: 14px; color: var(--ink-2); margin: 0 0 12px; }
-  .takeaway { margin-top: 12px; padding: 10px 14px; border-radius: 10px; background: var(--surface-2); font-size: 14px; color: var(--ink); }
-  .takeaway b { color: var(--ink); }
+  #tip { position: fixed; pointer-events: none; z-index: 50; opacity: 0; background: var(--ink); color: var(--page);
+    font-size: 12.5px; line-height: 1.45; padding: 7px 10px; border-radius: 8px; max-width: 260px; transition: opacity .08s; }
+  #tip.on { opacity: 1; }
 
-  /* charts */
-  .chart { position: relative; width: 100%; }
-  .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
-  .chart text { font-family: inherit; }
-  .tick { fill: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
-  .cat { fill: var(--ink-2); font-size: 12px; }
-  .vlabel { fill: var(--ink); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
-  .gridline { stroke: var(--grid); stroke-width: 1; }
-  .baseline { stroke: var(--axis); stroke-width: 1; }
-  .bar { transition: opacity .12s; }
-  .chart:hover .bar { opacity: .55; }
-  .chart .hit:hover + .bar, .chart .bar.on { opacity: 1; }
-  .tip {
-    position: absolute; pointer-events: none; z-index: 5; opacity: 0;
-    background: var(--ink); color: var(--page); font-size: 12.5px; line-height: 1.45;
-    padding: 7px 10px; border-radius: 8px; white-space: nowrap; transform: translate(-50%, calc(-100% - 10px));
-    transition: opacity .1s;
-  }
-  .tip.show { opacity: 1; }
-  .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--ink-2); margin-bottom: 8px; }
-  .legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; background: var(--c); vertical-align: -1px; }
-  details.tbl { margin-top: 10px; font-size: 13px; }
-  details.tbl summary { cursor: pointer; color: var(--muted); }
-  table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
-  th, td { text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--grid); }
-  th:first-child, td:first-child { text-align: left; }
-  th { color: var(--ink-2); font-weight: 600; font-size: 13px; }
-  .tbl-wrap { overflow-x: auto; }
-
-  /* pipeline */
-  .pipeline { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; counter-reset: step; }
-  .step { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; counter-increment: step; }
-  .step::before { content: counter(step); display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--s1); color: #fff; font-size: 12px; font-weight: 700; }
-  .step b { display: block; margin: 8px 0 2px; font-size: 15px; }
-  .step span { font-size: 13px; color: var(--ink-2); line-height: 1.5; display: block; }
-  .step code { font-size: 12px; }
-  code { background: var(--surface-2); padding: 1px 5px; border-radius: 5px; font-size: .9em; }
-
-  .feat-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: 12px; }
-  .fg { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
-  .fg h3 { font-size: 15px; }
-  .fg p { font-size: 13px; color: var(--ink-2); margin: 4px 0 8px; }
-  .chips { display: flex; flex-wrap: wrap; gap: 4px; }
-  .chips code { font-size: 11.5px; }
-
-  /* confusion matrix */
-  .cm { display: grid; grid-template-columns: auto 1fr 1fr; gap: 6px; font-variant-numeric: tabular-nums; font-size: 13px; }
-  .cm .h { color: var(--ink-2); font-weight: 600; display: grid; place-items: center; padding: 4px; text-align: center; }
-  .cm .c { border-radius: 10px; padding: 14px 10px; text-align: center; border: 1px solid var(--border); }
-  .cm .c b { display: block; font-size: 20px; }
-  .cm .c small { color: var(--ink-2); }
-  .cm .good { background: color-mix(in srgb, var(--s1) 16%, var(--surface)); }
-  .cm .bad { background: color-mix(in srgb, var(--s2) 14%, var(--surface)); }
-
-  .insights { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 12px; }
-  .ins { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px; }
-  .ins .n { font-size: 28px; font-weight: 700; color: var(--accent); line-height: 1.1; }
-  .ins h3 { margin-top: 6px; font-size: 16px; }
-  .ins p { font-size: 14px; color: var(--ink-2); margin: 4px 0 0; }
-
-  ul.clean { padding-left: 20px; margin: 0; }
-  ul.clean li { margin: 6px 0; color: var(--ink-2); }
-  ul.clean li b { color: var(--ink); }
-
-  .links-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 12px; }
-  .lnk { display: block; text-decoration: none; color: var(--ink); background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
-  .lnk:hover { border-color: var(--accent); }
-  .lnk span { display: block; font-size: 13px; color: var(--ink-2); }
-  .note { font-size: 12.5px; color: var(--muted); margin-top: 8px; }
-
-  footer { padding: 48px 0 64px; color: var(--muted); font-size: 13px; }
+  .steps { display: flex; flex-wrap: wrap; gap: 8px; }
+  .steps span { background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 6px 14px; font-size: 13.5px; }
+  .steps span b { color: var(--s1); margin-right: 4px; }
+  footer { padding: 48px 0 56px; color: var(--muted); font-size: 13px; }
 </style>
 </head>
 <body>
+<div id="tip" role="tooltip"></div>
 
-<nav class="top" aria-label="Sections">
-  <div class="wrap">
-    <span class="brand">Fraud Detect</span>
-    <div class="links">
-      <a href="#data">ข้อมูล</a>
-      <a href="#eda">EDA</a>
-      <a href="#pipeline">Pipeline</a>
-      <a href="#features">Features</a>
-      <a href="#model">ผลโมเดล</a>
-      <a href="#importance">ปัจจัยเสี่ยง</a>
-      <a href="#next">Next steps</a>
-      <a href="#resources">Resources</a>
-    </div>
-    <button class="theme-btn" id="themeBtn" type="button" aria-label="Toggle dark mode">◐</button>
+<nav class="top"><div class="wrap">
+  <b>Fraud Detect</b>
+  <div class="links">
+    <a href="#data">ข้อมูล</a><a href="#when">เวลา</a><a href="#where">สถานที่</a><a href="#what">ร้านค้า</a>
+    <a href="#model">โมเดล</a><a href="#drivers">ปัจจัย</a><a href="#more">ไฟล์</a>
   </div>
-</nav>
+  <button class="theme-btn" id="themeBtn" type="button" aria-label="Toggle dark mode">◐</button>
+</div></nav>
 
-<header class="hero">
-  <div class="wrap">
-    <div class="eyebrow">Big Data Project · Team 3</div>
-    <h1>ตรวจจับธุรกรรมบัตรเครดิตทุจริต<br />จาก 24 ล้านรายการด้วย PySpark</h1>
-    <p class="lede">ใช้ Apache Spark บน Google Cloud สร้าง feature พฤติกรรมการใช้จ่ายย้อนหลังของผู้ใช้และบัตร แล้ว train Random Forest บนข้อมูลที่ fraud มีเพียง 0.12% โดยคง distribution จริงไว้ใน validation และ test set</p>
-    <div class="meta">
-      <span>Dataset: IBM TabFormer (synthetic) ปี 1991–2020</span>
-      <span>Stack: PySpark 3.5 · Spark ML · GCS / Dataproc</span>
-    </div>
-    <div class="tiles">
-      <div class="tile"><div class="label">ธุรกรรมทั้งหมด</div><div class="value">24.39M</div><div class="sub">2,000 users · 6,139 cards</div></div>
-      <div class="tile"><div class="label">ธุรกรรม fraud</div><div class="value">29,757</div><div class="sub">0.12% ของทั้งหมด (1 : 819)</div></div>
-      <div class="tile"><div class="label">Features ที่ใช้</div><div class="value">84</div><div class="sub">78 numeric + 6 categorical</div></div>
-      <div class="tile"><div class="label">F1 (fraud) บน test set</div><div class="value">54.5%</div><div class="sub">Precision 64.2% · Recall 47.3%</div></div>
-    </div>
+<header><div class="wrap">
+  <div class="eyebrow">Big Data Project · Team 3</div>
+  <h1>Credit Card Fraud Detection<br />24 ล้านธุรกรรม ด้วย PySpark</h1>
+  <p class="lede">Spark ML Random Forest · 84 features · Google Cloud</p>
+  <div class="tiles">
+    <div class="tile"><div class="l">ธุรกรรม</div><div class="v">24.39M</div><div class="s">ปี 1991–2020 · 2,000 users</div></div>
+    <div class="tile"><div class="l">Fraud</div><div class="v">0.12%</div><div class="s">29,757 รายการ</div></div>
+    <div class="tile"><div class="l">Precision (test)</div><div class="v">64.2%</div><div class="s">แจ้งเตือน 10 ครั้ง ถูก 6–7</div></div>
+    <div class="tile"><div class="l">F1 (test)</div><div class="v">54.5%</div><div class="s">Kaggle baseline 19%</div></div>
   </div>
-</header>
+</div></header>
 
 <main class="wrap">
 
 <section id="data">
-  <div class="sec-num">01 · โจทย์และข้อมูล</div>
-  <h2>ปัญหา: เข็มในมหาสมุทรข้อมูล</h2>
-  <p class="intro">ข้อมูลประกอบด้วย 3 ตาราง คือ <b>transactions</b> (24.4 ล้านแถว, 2.35 GB), <b>cards</b> (6,146 ใบ) และ <b>users</b> (2,000 คน) ซึ่งมีขนาดใหญ่เกินกว่าที่ pandas บนเครื่องเดียวจะ join และทำ window feature ได้สบาย ๆ เราจึงใช้ Spark ทั้ง pipeline ส่วนความยากหลักคือ class imbalance เพราะ fraud มีเพียง 1 ใน 819 รายการ โมเดลที่ทายว่า "ปกติ" ทุกรายการจะได้ accuracy 99.88% แต่จับ fraud ไม่ได้เลย</p>
-  <div class="grid2">
+  <div class="num">01 · DATA</div>
+  <h2>เข็มในมหาสมุทร</h2>
+  <div class="grid">
     <div class="card">
-      <h3>จำนวน fraud ต่อปี</h3>
-      <p class="desc">จำนวนรายการ fraud ในแต่ละปี (ปี 2020 มีข้อมูลถึงเดือน ก.พ. เท่านั้น)</p>
-      <div class="chart" id="c-year"></div>
-      <div class="takeaway">Fraud เกิดเป็น <b>ช่วง ๆ ไม่สม่ำเสมอ</b> เช่นปี 2011 มีเพียง 55 รายการ แต่ปี 2010 มี 3,835 รายการ ทำให้ต้องระวังว่าแต่ละ split มี fraud จากหลายช่วงเวลา</div>
+      <h3>1 ใน 819</h3>
+      <p class="cap">แต่ละจุดคือ 1 ธุรกรรม และมี <b>fraud เพียงจุดเดียว</b></p>
+      <div class="viz" id="v-waffle"></div>
     </div>
     <div class="card">
-      <h3>สัดส่วน class</h3>
-      <p class="desc">ทุก split คงสัดส่วนจริงไว้ ยกเว้น train ที่ลด non-fraud ลง</p>
-      <div class="tbl-wrap">
-        <table>
-          <thead><tr><th>Split</th><th>Rows</th><th>Fraud</th><th>Fraud %</th></tr></thead>
-          <tbody>
-            <tr><td>Train (เต็ม)</td><td>17,600,222</td><td>20,967</td><td>0.12%</td></tr>
-            <tr><td>Train (หลัง undersample)</td><td>7,053,114</td><td>20,967</td><td>0.30%</td></tr>
-            <tr><td>Validation</td><td>3,768,621</td><td>4,463</td><td>0.12%</td></tr>
-            <tr><td>Test (untouched)</td><td>3,774,549</td><td>4,561</td><td>0.12%</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="takeaway">แบ่งประมาณ <b>70 / 15 / 15</b> แล้ว undersample เฉพาะ non-fraud ใน train (เก็บไว้ 40%) โดยไม่แตะ validation และ test เพื่อให้ metric ที่รายงานสะท้อนสถานการณ์จริง</div>
+      <h3>Data flow สำหรับ train</h3>
+      <p class="cap">ลด non-fraud เฉพาะใน train · validation และ test คงสัดส่วนจริง</p>
+      <div class="viz" id="v-flow"></div>
     </div>
   </div>
 </section>
 
-<section id="eda">
-  <div class="sec-num">02 · Exploratory Data Analysis</div>
-  <h2>Fraud มีหน้าตาแบบไหน</h2>
-  <p class="intro">ตัวเลขทุกตัวในส่วนนี้คำนวณจากข้อมูลดิบครบทั้ง 24.4 ล้านแถว อัตรา fraud เฉลี่ยของทั้งชุดอยู่ที่ <b>0.122%</b> ซึ่งใช้เป็นเส้นอ้างอิงในกราฟ</p>
-  <div class="grid2">
+<section id="when">
+  <div class="num">02 · WHEN</div>
+  <h2>Fraud เกิดเมื่อไร</h2>
+  <div class="grid">
     <div class="card">
-      <h3>อัตรา fraud ตามช่องทางการจ่าย</h3>
-      <p class="desc">% ของธุรกรรมในแต่ละช่องทางที่เป็น fraud</p>
-      <div class="chart" id="c-chip"></div>
-      <div class="takeaway">ธุรกรรม <b>Online</b> มีอัตรา fraud 0.68% หรือ <b>16 เท่า</b>ของการรูดบัตร และคิดเป็น 62% ของ fraud ทั้งหมด ทั้งที่มีสัดส่วนเพียง 11% ของธุรกรรม</div>
+      <h3>Calendar heatmap · จำนวน fraud รายเดือน</h3>
+      <p class="cap">Fraud เกิดเป็น<b>คลื่น</b> ไม่ได้กระจายสม่ำเสมอ</p>
+      <div class="viz" id="v-cal"></div>
     </div>
     <div class="card">
-      <h3>อัตรา fraud ตามตำแหน่งร้านค้า</h3>
-      <p class="desc">แยกตามข้อมูล merchant state ที่มีในธุรกรรม</p>
-      <div class="chart" id="c-loc"></div>
-      <div class="takeaway">ธุรกรรมกับร้าน<b>ต่างประเทศ</b>มีอัตรา fraud 4.1% หรือ <b>181 เท่า</b>ของร้านในสหรัฐฯ ส่วนการไม่มี zip/state (เกิดกับธุรกรรม online) คือสัญญาณที่โมเดลใช้มากที่สุด</div>
-    </div>
-    <div class="card">
-      <h3>อัตรา fraud ตามชั่วโมง</h3>
-      <p class="desc">% fraud ของธุรกรรมในแต่ละชั่วโมงของวัน</p>
-      <div class="chart" id="c-hour"></div>
-      <div class="takeaway">สัดส่วน fraud สูงสองช่วงคือ <b>ตี 3 – ตี 5</b> ซึ่งปกติแทบไม่มีคนใช้บัตร และ <b>9:00 – 14:00</b> (0.15–0.19%) ขณะที่หลัง 20:00 ต่ำกว่า 0.03%</div>
-    </div>
-    <div class="card">
-      <h3>อัตรา fraud ตามยอดเงิน</h3>
-      <p class="desc">% fraud ในแต่ละช่วงยอดเงิน (USD)</p>
-      <div class="chart" id="c-amt"></div>
-      <div class="takeaway">ยิ่งยอดสูง สัดส่วน fraud ยิ่งสูง โดยยอด <b>$250+</b> มีอัตรา ~1% และ median ของรายการ fraud อยู่ที่ <b>$71</b> เทียบกับ <b>$30</b> ของรายการปกติ</div>
-    </div>
-    <div class="card" style="grid-column: 1 / -1;">
-      <h3>ประเภทร้านค้า (MCC) ที่อัตรา fraud สูงสุด</h3>
-      <p class="desc">นับเฉพาะ MCC ที่มีธุรกรรมมากกว่า 20,000 รายการ</p>
-      <div class="chart" id="c-mcc"></div>
-      <div class="takeaway">กลุ่มที่เสี่ยงที่สุดคือ<b>ท่องเที่ยวและที่พัก</b> (โรงแรม Hilton, Marriott, Wyndham, เอเจนซีท่องเที่ยว, รถเช่า) และ<b>สวนสนุก</b> ซึ่งมีอัตรา fraud 0.7–1.4% หรือราว 6–12 เท่าของค่าเฉลี่ย</div>
+      <h3>นาฬิกา 24 ชม. · อัตรา fraud ตามช่องทาง</h3>
+      <p class="cap">Online เสี่ยงกว่าช่องทางอื่นทุกชั่วโมง · พีค <b>ตี 3 (1.4%)</b> และ <b>10 โมง</b></p>
+      <div class="legend lines" id="lg-clock"></div>
+      <div class="viz" id="v-clock"></div>
     </div>
   </div>
 </section>
 
-<section id="pipeline">
-  <div class="sec-num">03 · Big Data Pipeline</div>
-  <h2>จาก CSV 2.35 GB สู่โมเดลใน Model Registry</h2>
-  <p class="intro">ทุกขั้นตอนเขียนด้วย PySpark DataFrame API และเก็บผลลัพธ์กลางเป็น Parquet บน Google Cloud Storage เพื่อให้รันต่อจาก checkpoint ได้โดยไม่ต้องคำนวณใหม่ทั้งหมด</p>
-  <div class="pipeline">
-    <div class="step"><b>Ingest</b><span>อ่าน CSV 3 ตารางเข้า Spark แล้ว cast ชนิดข้อมูลและล้างเครื่องหมาย <code>$</code></span></div>
-    <div class="step"><b>Join &amp; Clean</b><span>Join transactions กับ cards/users (broadcast ตารางเล็ก) แล้วสร้าง timestamp</span></div>
-    <div class="step"><b>Feature Eng.</b><span>ใช้ Window function ต่อ user และต่อ card ดูเฉพาะ<i>อดีต</i>ของแต่ละรายการ</span></div>
-    <div class="step"><b>Split</b><span>แบ่ง Train / Valid / Test ประมาณ 70/15/15 และบันทึกเป็น Parquet</span></div>
-    <div class="step"><b>Imbalance</b><span>เก็บ non-fraud ไว้ 40% และให้ class weight แก่ fraud เท่ากับ √(neg/pos) = 18.3</span></div>
-    <div class="step"><b>Train RF</b><span>120 trees, maxDepth 16, maxBins 64, minInstances 15, subsampling 0.8</span></div>
-    <div class="step"><b>Threshold</b><span>Grid 0.01–1.00 บน validation แล้วเลือกจุดที่ F1 สูงสุด = <b>0.56</b></span></div>
-    <div class="step"><b>Evaluate &amp; Save</b><span>ประเมินบน test ครั้งเดียว แล้วบันทึก model, metrics และ feature importance ลง GCS</span></div>
+<section id="where">
+  <div class="num">03 · WHERE</div>
+  <h2>Fraud เกิดที่ไหน</h2>
+  <div class="grid">
+    <div class="card">
+      <h3>อัตรา fraud ตามรัฐของร้านค้า (สหรัฐฯ)</h3>
+      <p class="cap">ร้านในสหรัฐฯ เฉลี่ยเพียง <b>0.02%</b></p>
+      <div class="viz" id="v-map"></div>
+    </div>
+    <div class="card">
+      <h3>ร้านค้าต่างประเทศ</h3>
+      <p class="cap">ขนาดวง = จำนวน fraud · สี = อัตรา fraud · <b>อิตาลี 54%</b></p>
+      <div class="viz" id="v-pack"></div>
+    </div>
   </div>
-  <p class="note">ขั้น train บนเครื่อง local ติด Java OOM จึงย้ายไปรันบน Spark cluster (GCP) โดยปรับ repartition และ persist แบบ MEMORY_AND_DISK</p>
 </section>
 
-<section id="features">
-  <div class="sec-num">04 · Feature Engineering</div>
-  <h2>84 features ใน 5 กลุ่ม</h2>
-  <p class="intro">หลักสำคัญคือ<b>ป้องกัน data leakage</b> โดย feature พฤติกรรมทุกตัวคำนวณจาก window <code>rowsBetween(…, -1)</code> ซึ่งใช้เฉพาะธุรกรรมที่เกิด<i>ก่อนหน้า</i>รายการนั้น เหมือนข้อมูลที่ระบบจะมีจริงในขณะอนุมัติบัตร</p>
-  <div class="feat-groups">
-    <div class="fg"><h3>ธุรกรรม</h3><p>ยอดเงิน ช่องทาง และข้อมูลที่หายไป</p><div class="chips"><code>log_amount</code><code>is_online</code><code>is_refund</code><code>zip_missing</code><code>has_error</code><code>mcc</code></div></div>
-    <div class="fg"><h3>เวลา</h3><p>รวม cyclic encoding ของชั่วโมงและวัน</p><div class="chips"><code>hour_sin/cos</code><code>is_night</code><code>is_weekend</code><code>day_of_week</code></div></div>
-    <div class="fg"><h3>พฤติกรรมผู้ใช้</h3><p>เทียบกับประวัติ 5 / 20 รายการ และ 1 ชม. ล่าสุด</p><div class="chips"><code>user_amount_zscore</code><code>user_seconds_since_prev_txn</code><code>user_txn_count_last_1h</code><code>user_online_count_prev_20</code></div></div>
-    <div class="fg"><h3>พฤติกรรมบัตร</h3><p>ชุดเดียวกันแต่ระดับบัตรแต่ละใบ</p><div class="chips"><code>card_amount_zscore</code><code>card_seconds_since_prev_txn</code><code>card_txn_count_last_1h</code></div></div>
-    <div class="fg"><h3>โปรไฟล์และบริบท</h3><p>ข้อมูลลูกค้า บัตร และความสอดคล้องของตำแหน่ง</p><div class="chips"><code>is_same_state_as_user</code><code>amount_over_credit_limit_ratio</code><code>income_per_card</code><code>fico_score</code></div></div>
+<section id="what">
+  <div class="num">04 · WHAT</div>
+  <h2>ร้านค้าแบบไหน ยอดเท่าไร</h2>
+  <div class="grid">
+    <div class="card wide">
+      <h3>ประเภทร้านค้า (MCC) · ปริมาณ vs อัตรา fraud</h3>
+      <p class="cap">ขนาดวง = จำนวน fraud · เส้นประ = ค่าเฉลี่ย 0.12% · <b>เครื่องประดับ 6%</b></p>
+      <div class="viz" id="v-mcc"></div>
+    </div>
+    <div class="card">
+      <h3>การกระจายยอดเงิน</h3>
+      <p class="cap">Median ของ fraud <b>$71</b> เทียบกับรายการปกติ <b>$30</b></p>
+      <div class="legend" id="lg-amt"></div>
+      <div class="viz" id="v-amt"></div>
+    </div>
+    <div class="card">
+      <h3>Error ขณะทำรายการ</h3>
+      <p class="cap"><b>Bad CVV</b> มีอัตรา fraud 2.6% หรือ 21 เท่าของค่าเฉลี่ย</p>
+      <div class="viz" id="v-err"></div>
+    </div>
   </div>
 </section>
 
 <section id="model">
-  <div class="sec-num">05 · ผลลัพธ์ของโมเดล</div>
-  <h2>จับ fraud ได้เกือบครึ่ง และแม่นยำ 64%</h2>
-  <p class="intro">เราใช้ <b>F1 ของ class fraud</b> เป็นตัวชี้วัดหลัก ไม่ใช้ accuracy ซึ่งสูงถึง 99.9% ในทุก split อยู่แล้ว ผลบน validation และ test ต่างกันเพียง ~1 จุด แสดงว่าโมเดล generalize ได้ดี</p>
-  <div class="grid2">
+  <div class="num">05 · MODEL</div>
+  <h2>Random Forest บน Spark cluster</h2>
+  <div class="grid3">
     <div class="card">
-      <h3>Precision / Recall / F1 (class fraud)</h3>
-      <p class="desc">ที่ threshold 0.56 แยกตาม split</p>
-      <div class="legend" id="lg-split"></div>
-      <div class="chart" id="c-split"></div>
-      <div class="takeaway">ช่องว่างระหว่าง Train (F1 70%) กับ Test (54%) เป็นผลจาก train ที่ผ่านการ undersample จึงง่ายกว่า แต่ค่า <b>Valid ≈ Test</b> ยืนยันว่าโมเดลไม่ได้ overfit จนใช้งานไม่ได้</div>
+      <h3>Test set · class fraud</h3>
+      <p class="cap">3.77M ธุรกรรม · threshold 0.56</p>
+      <div class="viz" id="v-gauge"></div>
     </div>
     <div class="card">
-      <h3>Confusion matrix · Test set</h3>
-      <p class="desc">3,774,549 ธุรกรรม · threshold 0.56</p>
-      <div class="cm">
-        <div></div><div class="h">ทาย: ปกติ</div><div class="h">ทาย: Fraud</div>
-        <div class="h">จริง: ปกติ</div>
-        <div class="c good"><b>3,768,785</b><small>True negative</small></div>
-        <div class="c bad"><b>≈1,203</b><small>False positive · ลูกค้าโดนบล็อกผิด</small></div>
-        <div class="h">จริง: Fraud</div>
-        <div class="c bad"><b>≈2,403</b><small>False negative · หลุดรอด</small></div>
-        <div class="c good"><b>≈2,158</b><small>True positive · จับได้</small></div>
-      </div>
-      <div class="takeaway">ทุก ๆ <b>10 ครั้ง</b>ที่โมเดลแจ้งเตือน จะเป็น fraud จริง <b>6–7 ครั้ง</b> และมีลูกค้าปกติโดนแจ้งเตือนผิดเพียง <b>0.03%</b></div>
-      <p class="note">ค่า ≈ ประมาณจาก precision, recall และ support ที่ notebook รายงาน</p>
+      <h3>ทุก 100 การแจ้งเตือน</h3>
+      <p class="cap"><b>64</b> เป็น fraud จริง</p>
+      <div class="viz" id="v-waf-p"></div>
     </div>
+    <div class="card">
+      <h3>ทุก 100 fraud จริง</h3>
+      <p class="cap">จับได้ <b>47</b></p>
+      <div class="viz" id="v-waf-r"></div>
+    </div>
+  </div>
+  <div class="grid" style="margin-top:16px">
     <div class="card">
       <h3>เทียบกับ Kaggle baseline</h3>
-      <p class="desc">Validation set, class fraud</p>
-      <div class="legend" id="lg-base"></div>
-      <div class="chart" id="c-base"></div>
-      <div class="takeaway">Baseline ทำ undersample จน validation เหลือสัดส่วน 80:20 ซึ่งต่างจากความจริงมาก ส่วนโมเดลของเราประเมินบนสัดส่วนจริง 99.88:0.12 แต่ยังได้ F1 สูงกว่า <b>+37 จุด</b></div>
-      <p class="note">Baseline: <a href="https://www.kaggle.com/code/mimansari/ibm-credit-card-fraud-detection-precision-0-14" target="_blank" rel="noopener">IBM Credit Card Fraud Detection (Kaggle)</a></p>
+      <p class="cap">Validation set · F1 เพิ่มขึ้น <b>+37 จุด</b></p>
+      <div class="legend lines" id="lg-slope"></div>
+      <div class="viz" id="v-slope"></div>
     </div>
     <div class="card">
-      <h3>เส้นทางการพัฒนาโมเดล</h3>
-      <p class="desc">F1 ของ class fraud บน validation: local RF 36 features → เพิ่ม class weight (thr 0.60) → cluster RF 84 features (thr 0.56)</p>
-      <div class="chart" id="c-iter"></div>
-      <div class="takeaway">ตัวที่เพิ่มผลได้มากที่สุดคือ <b>behavioral features ระดับ user/card</b> และการได้ train บน cluster ด้วยข้อมูลที่มากขึ้น 4 เท่า ไม่ใช่การปรับ hyperparameter อย่างเดียว</div>
-      <p class="note">รอบ local ใช้ train sample 10% และ feature set 36 ตัว จึงเทียบกับรอบ cluster ได้แบบคร่าว ๆ เท่านั้น</p>
+      <h3>เส้นทางการพัฒนา · Validation F1</h3>
+      <p class="cap">ก้าวกระโดดจาก <b>behavioral features</b> และข้อมูลที่ train ได้มากขึ้น 4 เท่าบน cluster</p>
+      <div class="viz" id="v-journey"></div>
     </div>
   </div>
 </section>
 
-<section id="importance">
-  <div class="sec-num">06 · Feature Importance &amp; Business Insight</div>
-  <h2>โมเดลมองหาอะไร</h2>
-  <p class="intro">Feature importance (Gini) จาก Random Forest ชุดสุดท้าย แสดง 15 อันดับแรก</p>
+<section id="drivers">
+  <div class="num">06 · DRIVERS</div>
+  <h2>โมเดลดูอะไร</h2>
   <div class="card">
-    <div class="chart" id="c-fi"></div>
+    <h3>Feature importance · top 25 จัดกลุ่ม</h3>
+    <p class="cap">พื้นที่ = importance · ความครบถ้วนของข้อมูลร้านค้าและตำแหน่งสำคัญที่สุด</p>
+    <div class="legend" id="lg-tree"></div>
+    <div class="viz" id="v-tree"></div>
   </div>
-  <div class="insights" style="margin-top:16px">
-    <div class="ins"><div class="n">01</div><h3>ข้อมูลร้านค้าไม่ครบ</h3><p><code>zip_missing</code> และ <code>merchant_state_missing</code> เป็นสัญญาณอันดับหนึ่ง เพราะธุรกรรมที่ไม่ระบุตำแหน่งร้านมีอัตรา fraud 0.86% สูงกว่าปกติ 38 เท่า</p></div>
-    <div class="ins"><div class="n">02</div><h3>ตำแหน่งและช่องทาง</h3><p>การใช้บัตรนอกรัฐที่เจ้าของบัตรอยู่ (<code>is_same_state_as_user</code>) และการซื้อออนไลน์ เพิ่มความเสี่ยงอย่างชัดเจน</p></div>
-    <div class="ins"><div class="n">03</div><h3>ประเภทร้านค้าและ error</h3><p>MCC กลุ่มโรงแรม ท่องเที่ยว และสวนสนุก รวมถึงธุรกรรมที่เกิด error (เช่น PIN ผิด) มีความเสี่ยงสูงกว่าปกติ</p></div>
-    <div class="ins"><div class="n">04</div><h3>ยอดใช้จ่ายผิดจากนิสัยเดิม</h3><p>Z-score ของยอดเงินเทียบกับประวัติของบัตรและผู้ใช้ มีความหมายมากกว่ายอดเงินดิบ ระบบจึงควรดูว่า "ผิดปกติสำหรับคนนี้" ไม่ใช่แค่ "ยอดสูง"</p></div>
-  </div>
-</section>
-
-<section id="next">
-  <div class="sec-num">07 · ข้อจำกัดและงานต่อไป</div>
-  <h2>ถ้าจะนำไปใช้จริง</h2>
-  <div class="grid2">
-    <div class="card">
-      <h3>ข้อจำกัด</h3>
-      <ul class="clean">
-        <li><b>Synthetic data</b> — ข้อมูล IBM TabFormer สร้างจาก simulation ดังนั้น pattern บางอย่าง เช่นการกระจุกตัวของ fraud ในบางปี อาจไม่ตรงกับโลกจริง</li>
-        <li><b>Recall 47%</b> — ยังมี fraud ราวครึ่งหนึ่งที่หลุดรอด ต้องใช้คู่กับกฎ (rule-based) หรือการตรวจสอบโดยคน</li>
-        <li><b>Validation ยังไม่ใช่ production</b> — ยังไม่ได้ทดสอบแบบ train ด้วยอดีตแล้วทำนายเดือนถัดไปต่อเนื่อง (rolling) ซึ่งใกล้กับการใช้งานจริงกว่า</li>
-        <li><b>Threshold จาก F1</b> — ยังไม่ได้คิดต้นทุนจริงของ false negative เทียบกับ false positive</li>
-      </ul>
-    </div>
-    <div class="card">
-      <h3>Next steps</h3>
-      <ul class="clean">
-        <li>ใช้ <b>PR-AUC</b> และ recall@precision เป้าหมาย (เช่น precision ≥ 20%) เป็น metric หลัก</li>
-        <li>เลือก threshold จาก <b>expected cost</b> โดยเทียบมูลค่าความเสียหายจาก fraud กับต้นทุนการตรวจสอบและประสบการณ์ลูกค้า</li>
-        <li>ทำ <b>temporal validation</b> แบบ rolling window ตามเดือน เพื่อจำลอง production</li>
-        <li>ลอง <b>Gradient-boosted trees</b> (GBT / XGBoost on Spark) และ feature ด้าน merchant risk score</li>
-        <li>ทำ <b>monitoring</b> สำหรับ data drift และ retrain อัตโนมัติผ่าน model registry ที่มีอยู่แล้ว</li>
-      </ul>
-    </div>
+  <div class="steps" style="margin-top:20px">
+    <span><b>Next</b>PR-AUC + cost-based threshold</span>
+    <span><b>Next</b>Rolling temporal validation</span>
+    <span><b>Next</b>GBT / XGBoost on Spark</span>
+    <span><b>Next</b>Drift monitoring + retrain</span>
   </div>
 </section>
 
-<section id="resources">
-  <div class="sec-num">08 · Resources</div>
+<section id="more">
+  <div class="num">07 · FILES</div>
   <h2>รายละเอียดเพิ่มเติม</h2>
-  <div class="links-grid">
-    <a class="lnk" href="reports/eda.html">EDA notebook<span>Exploratory analysis ฉบับเต็ม (HTML)</span></a>
-    <a class="lnk" href="reports/model_training.html">Model training notebook<span>Random Forest บน Spark cluster (HTML)</span></a>
-    <a class="lnk" href="reports/model_insight.html">Model interpretation<span>บทวิเคราะห์ผลและ business insight</span></a>
-    <a class="lnk" href="https://github.com/tpootth/fraud_detect">Source code<span>Notebooks ทั้งหมดบน GitHub</span></a>
+  <div class="steps">
+    <span><a href="reports/eda.html">EDA notebook</a></span>
+    <span><a href="reports/model_training.html">Model training notebook</a></span>
+    <span><a href="reports/model_insight.html">Model interpretation</a></span>
+    <span><a href="https://github.com/tpootth/fraud_detect">GitHub repo</a></span>
   </div>
 </section>
-
 </main>
 
-<footer>
-  <div class="wrap">Big Data Project · Credit Card Fraud Detection with PySpark · Data: IBM TabFormer synthetic credit card transactions</div>
-</footer>
+<footer><div class="wrap">Data: IBM TabFormer synthetic credit card transactions · Built with D3.js</div></footer>
 
 <script>
-/* ---------- data (computed from raw CSV / notebook outputs) ---------- */
-const BASE_RATE = 29757 / 24386900;
-const D = {
-  year: [[1996,10],[1997,32],[1998,32],[1999,24],[2000,171],[2001,354],[2002,139],[2003,311],[2004,620],[2005,229],[2006,1118],[2007,1881],[2008,3710],[2009,1140],[2010,3835],[2011,55],[2012,1333],[2013,2018],[2014,1052],[2015,3281],[2016,3579],[2017,255],[2018,2491],[2019,2087],[2020,0]],
-  chip: [["Online",2713220,18349],["Chip",6287598,4836],["Swipe",15386082,6572]],
-  loc: [["ต่างประเทศ",157314,6503],["ไม่ระบุ (online)",2720821,18349],["ในสหรัฐฯ",21508765,4905]],
-  hour: [[0,235608,120],[1,213411,185],[2,214075,231],[3,183370,342],[4,203550,372],[5,321588,505],[6,1347058,855],[7,1644618,1597],[8,1616851,1674],[9,1598928,2178],[10,1664499,3116],[11,1736005,3146],[12,1739868,2933],[13,1681236,2837],[14,1632864,2408],[15,1559102,2155],[16,1589776,1769],[17,900509,1076],[18,837841,888],[19,847344,801],[20,793351,216],[21,765024,157],[22,759960,88],[23,300464,108]],
-  amt: [["คืนเงิน",1244683,1125],["0–10",5181126,4527],["10–50",9553630,6343],["50–100",5493950,6294],["100–250",2534297,7898],["250–500",299577,2825],["500–1k",62781,564],["1k+",16856,181]],
-  mcc: [["7996 สวนสนุก / งานรื่นเริง",20221,290],["3722 Wyndham Hotels",28914,294],["3504 Hilton Hotels",29176,296],["7011 โรงแรม / ที่พัก",31358,302],["3596 โรงแรม / ที่พัก",26999,243],["3509 Marriott Hotels",29784,265],["3780 โรงแรม / ที่พัก",27071,222],["3359 Payless Car Rental",20244,165],["3684 Budget Host Inns",29866,238],["5815 Digital goods",115247,879]],
-  split: { metrics: ["Precision","Recall","F1"], series: [["Train",[85.95,59.66,70.43]],["Validation",[64.91,48.62,55.60]],["Test",[64.21,47.31,54.48]]] },
-  base: { metrics: ["Precision","Recall","F1"], series: [["Kaggle baseline",[14,32,19]],["โมเดลของเรา",[64.91,48.62,55.60]]] },
-  iter: [["Local baseline",23.67],["+ class weight",27.59],["Cluster RF V2",55.60]],
-  fi: [["zip_missing",.0919],["mcc",.0622],["is_same_state_as_user",.0453],["merchant_state_missing",.0379],["is_online",.0362],["errors (one-hot)",.0324],["year",.0263],["abs_amount",.0255],["card_amount_zscore",.0254],["log_amount",.0232],["card_seconds_since_prev_txn",.0227],["state (one-hot)",.0217],["user_amount_zscore",.0215],["user_abs_amount_dev",.0202],["amount",.0180]]
+const E = window.EDA;
+const BASE = 29757 / 24386900;
+const MODEL = {
+  test: { Precision: 64.21, Recall: 47.31, F1: 54.48 },
+  slope: [["Precision", 14, 64.91], ["Recall", 32, 48.62], ["F1", 19, 55.60]],
+  journey: [["Local baseline", "36 features · RF", 23.67], ["+ class weight", "threshold 0.60", 27.59], ["Cluster RF V2", "84 features · thr 0.56", 55.60]],
+  fi: [
+    ["ข้อมูลร้านค้า / ธุรกรรม", [["zip_missing",.0919],["mcc",.0622],["merchant_state_missing",.0379],["is_online",.0362],["errors",.0324],["abs_amount",.0255],["log_amount",.0232],["amount",.0180]]],
+    ["ตำแหน่ง / โปรไฟล์", [["is_same_state_as_user",.0453],["state",.0217],["amount_over_credit_limit",.0141],["income_per_card",.0108]]],
+    ["พฤติกรรมบัตร", [["card_amount_zscore",.0254],["card_seconds_since_prev",.0227],["card_online_count_20",.0150],["card_std_amount_20",.0117],["card_prev_amount",.0113],["card_txn_count_1h",.0103]]],
+    ["พฤติกรรมผู้ใช้", [["user_amount_zscore",.0215],["user_abs_amount_dev",.0202],["user_avg_amount_5",.0143],["user_online_count_20",.0138],["user_amount_change",.0123],["user_seconds_since_prev",.0122]]],
+    ["เวลา", [["year",.0263]]]
+  ]
 };
+const STATE_NAMES = {AL:"Alabama",AK:"Alaska",AZ:"Arizona",AR:"Arkansas",CA:"California",CO:"Colorado",CT:"Connecticut",DE:"Delaware",DC:"District of Columbia",FL:"Florida",GA:"Georgia",HI:"Hawaii",ID:"Idaho",IL:"Illinois",IN:"Indiana",IA:"Iowa",KS:"Kansas",KY:"Kentucky",LA:"Louisiana",ME:"Maine",MD:"Maryland",MA:"Massachusetts",MI:"Michigan",MN:"Minnesota",MS:"Mississippi",MO:"Missouri",MT:"Montana",NE:"Nebraska",NV:"Nevada",NH:"New Hampshire",NJ:"New Jersey",NM:"New Mexico",NY:"New York",NC:"North Carolina",ND:"North Dakota",OH:"Ohio",OK:"Oklahoma",OR:"Oregon",PA:"Pennsylvania",RI:"Rhode Island",SC:"South Carolina",SD:"South Dakota",TN:"Tennessee",TX:"Texas",UT:"Utah",VT:"Vermont",VA:"Virginia",WA:"Washington",WV:"West Virginia",WI:"Wisconsin",WY:"Wyoming"};
 
-/* ---------- tiny SVG chart helpers ---------- */
-const NS = "http://www.w3.org/2000/svg";
-const fmtInt = n => n.toLocaleString("en-US");
-const fmtPct = (v, d = 2) => (v * 100).toFixed(d) + "%";
-function el(tag, attrs = {}, parent) {
-  const e = document.createElementNS(NS, tag);
-  for (const k in attrs) e.setAttribute(k, attrs[k]);
-  if (parent) parent.appendChild(e);
-  return e;
+/* ---------- helpers ---------- */
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const isDark = () => css("--page") === "#0d0d0d";
+const fmt = d3.format(",");
+const pct = (v, d = 2) => (v * 100).toFixed(d) + "%";
+const tip = d3.select("#tip");
+function showTip(ev, html) {
+  tip.html(html).classed("on", true);
+  const n = tip.node(), w = n.offsetWidth, h = n.offsetHeight;
+  let x = ev.clientX + 14, y = ev.clientY - h - 10;
+  if (x + w > innerWidth - 8) x = ev.clientX - w - 14;
+  if (y < 8) y = ev.clientY + 16;
+  tip.style("left", x + "px").style("top", y + "px");
 }
-function niceMax(v) {
-  const p = Math.pow(10, Math.floor(Math.log10(v)));
-  const n = v / p;
-  return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * p;
+const hideTip = () => tip.classed("on", false);
+function bindTip(sel, html) {
+  sel.on("mousemove", (ev, d) => showTip(ev, html(d))).on("mouseleave", hideTip)
+     .on("touchstart", (ev, d) => { const t = ev.touches[0]; showTip({ clientX: t.clientX, clientY: t.clientY }, html(d)); }, { passive: true });
 }
-// rounded-top bar path anchored to baseline
-function barPathV(x, y, w, h, r = 4) {
-  r = Math.min(r, w / 2, h);
-  return `M${x},${y + h}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h}Z`;
+function setup(id, h) {
+  const host = d3.select("#" + id); host.selectAll("*").remove();
+  const w = host.node().clientWidth;
+  const svg = host.append("svg").attr("width", w).attr("height", h).attr("viewBox", `0 0 ${w} ${h}`);
+  return { svg, w, h };
 }
-function barPathH(x, y, w, h, r = 4) {
-  r = Math.min(r, h / 2, w);
-  return `M${x},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h - r}Q${x + w},${y + h} ${x + w - r},${y + h}H${x}Z`;
+// sequential ramps: light = pale->deep; dark = deep->bright so low values recede into the dark surface
+const BLUE = ["#cde2fb","#9ec5f4","#6da7ec","#3987e5","#256abf","#184f95","#0d366b"];
+const BLUE_D = ["#13294a","#184f95","#256abf","#3987e5","#6da7ec","#9ec5f4","#cde2fb"];
+const ORANGE = ["#fde3d6","#f7b597","#f08a5d","#eb6834","#c4501f","#933a14"];
+const ORANGE_D = ["#3d1f12","#933a14","#c4501f","#eb6834","#f08a5d","#f7b597"];
+const seqBlue = () => d3.interpolateRgbBasis(isDark() ? BLUE_D : BLUE);
+const seqOrange = () => d3.interpolateRgbBasis(isDark() ? ORANGE_D : ORANGE);
+let gid = 0;
+function legendRamp(svg, x, y, w, interp, labels) {
+  const id = "grad" + (gid++);
+  const g = svg.append("defs").append("linearGradient").attr("id", id);
+  d3.range(0, 1.01, 0.1).forEach(t => g.append("stop").attr("offset", t).attr("stop-color", interp(t)));
+  svg.append("rect").attr("x", x).attr("y", y).attr("width", w).attr("height", 8).attr("rx", 4).attr("fill", `url(#${id})`);
+  svg.append("text").attr("class", "lbl").attr("x", x).attr("y", y + 22).text(labels[0]);
+  svg.append("text").attr("class", "lbl").attr("x", x + w).attr("y", y + 22).attr("text-anchor", "end").text(labels[1]);
 }
-function makeTip(host) {
-  const t = document.createElement("div");
-  t.className = "tip"; host.appendChild(t);
-  return {
-    show(html, x, y) { t.innerHTML = html; t.style.left = x + "px"; t.style.top = y + "px"; t.classList.add("show"); },
-    hide() { t.classList.remove("show"); }
+
+/* ---------- 1. waffle 1 in 819 ---------- */
+function waffle() {
+  const { svg, w } = setup("v-waffle", 10);
+  const cols = w < 420 ? 27 : 39, rows = Math.ceil(819 / cols), gap = 2;
+  const cell = (w - gap * (cols - 1)) / cols, r = Math.max(2, (cell - 1) / 2);
+  const h = rows * (cell + gap);
+  svg.attr("height", h).attr("viewBox", `0 0 ${w} ${h}`);
+  const hit = Math.floor(rows / 2) * cols + Math.floor(cols / 2);
+  svg.selectAll("circle").data(d3.range(819)).join("circle")
+    .attr("cx", i => (i % cols) * (cell + gap) + cell / 2)
+    .attr("cy", i => Math.floor(i / cols) * (cell + gap) + cell / 2)
+    .attr("r", 0).attr("fill", i => i === hit ? css("--s2") : css("--empty"))
+    .call(bindTip, i => i === hit ? "<b>Fraud</b> · 1 รายการ" : "ธุรกรรมปกติ")
+    .transition().delay(i => i * 0.8).duration(300).attr("r", i => i === hit ? r * 1.7 : r);
+}
+
+/* ---------- 2. flow (alluvial) ---------- */
+function flow() {
+  const { svg, w, h } = setup("v-flow", 300);
+  const total = 24386900, cols = [0, w * 0.36, w * 0.68];
+  const pad = 14, scale = (h - 12 - pad * 2) / total, nw = 10;
+  const nodes = {
+    all:   { col: 0, v: total, label: "ทั้งหมด", sub: "24.39M" },
+    train: { col: 1, v: 17600222, label: "Train", sub: "17.60M" },
+    valid: { col: 1, v: 3768621, label: "Validation", sub: "3.77M" },
+    test:  { col: 1, v: 3774549, label: "Test", sub: "3.77M" },
+    used:  { col: 2, v: 7053114, label: "Train ที่ใช้", sub: "7.05M · fraud 0.30%" },
+    drop:  { col: 2, v: 10547108, label: "ตัดทิ้ง", sub: "60% ของ non-fraud" }
   };
-}
-function addTable(host, head, rows) {
-  const d = document.createElement("details"); d.className = "tbl";
-  d.innerHTML = `<summary>ดูเป็นตาราง</summary><div class="tbl-wrap"><table><thead><tr>${head.map(h => `<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
-  host.after(d);
-}
-function hover(host, tip, hit, bar, html, cx, cy) {
-  const on = () => { bar.classList.add("on"); const s = host.querySelector("svg"); const k = s.getBoundingClientRect().width / s.viewBox.baseVal.width; tip.show(html, cx * k, cy * k); };
-  const off = () => { bar.classList.remove("on"); tip.hide(); };
-  hit.addEventListener("mouseenter", on); hit.addEventListener("mouseleave", off);
-  hit.addEventListener("touchstart", on, { passive: true });
-}
-
-/* vertical single-series bars */
-function vbars(id, items, { value, label, tipHtml, fmtTick, refLine, labelEvery = 1, showLabelsFor = [] }) {
-  const host = document.getElementById(id); const tip = makeTip(host);
-  const W = Math.max(280, host.clientWidth || 520), H = 260, m = { t: 18, r: 8, b: 30, l: 46 };
-  const iw = W - m.l - m.r, ih = H - m.t - m.b;
-  const max = niceMax(Math.max(...items.map(value), refLine || 0) * 1.08);
-  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img" }, host);
-  for (let i = 0; i <= 4; i++) {
-    const v = max * i / 4, y = m.t + ih - ih * i / 4;
-    el("line", { x1: m.l, x2: W - m.r, y1: y, y2: y, class: i ? "gridline" : "baseline" }, svg);
-    el("text", { x: m.l - 6, y: y + 4, "text-anchor": "end", class: "tick" }, svg).textContent = fmtTick(v);
-  }
-  const step = iw / items.length, gap = Math.max(2, step * 0.18), bw = step - gap;
-  items.forEach((d, i) => {
-    const v = value(d), h = ih * v / max, x = m.l + i * step + gap / 2, y = m.t + ih - h;
-    const hit = el("rect", { x: m.l + i * step, y: m.t, width: step, height: ih, fill: "transparent", class: "hit" }, svg);
-    const bar = el("path", { d: barPathV(x, y, bw, Math.max(h, 0.01)), fill: "var(--s1)", class: "bar" }, svg);
-    hover(host, tip, hit, bar, tipHtml(d), x + bw / 2, y);
-    if (i % labelEvery === 0) el("text", { x: x + bw / 2, y: H - m.b + 16, "text-anchor": "middle", class: "tick" }, svg).textContent = label(d);
-    if (showLabelsFor.includes(i)) el("text", { x: x + bw / 2, y: y - 5, "text-anchor": "middle", class: "vlabel" }, svg).textContent = fmtTick(v);
+  let y = 0; ["train", "valid", "test"].forEach(k => { nodes[k].y = y; y += nodes[k].v * scale + pad; });
+  nodes.all.y = 0; nodes.all.h = y - pad;
+  y = 0; ["used", "drop"].forEach(k => { nodes[k].y = y; y += nodes[k].v * scale + pad; });
+  const color = { train: css("--s1"), valid: css("--s3"), test: css("--s3"), used: css("--s1"), drop: css("--muted") };
+  const g = svg.append("g").attr("transform", "translate(0,6)");
+  const links = [["all", "train"], ["all", "valid"], ["all", "test"], ["train", "used"], ["train", "drop"]];
+  const outOff = {};
+  links.forEach(([a, b]) => {
+    const A = nodes[a], B = nodes[b], th = B.v * scale;
+    const srcGap = a === "all" ? (["train", "valid", "test"].indexOf(b)) * pad : 0;
+    const y0 = A.y + (outOff[a] || 0) + srcGap, y1 = B.y;
+    outOff[a] = (outOff[a] || 0) + th;
+    const x0 = cols[A.col] + nw, x1 = cols[B.col], mx = (x0 + x1) / 2;
+    g.append("path").attr("d", `M${x0},${y0}C${mx},${y0} ${mx},${y1} ${x1},${y1}L${x1},${y1 + th}C${mx},${y1 + th} ${mx},${y0 + th} ${x0},${y0 + th}Z`)
+      .attr("fill", color[b]).attr("opacity", b === "drop" ? .16 : .28)
+      .call(bindTip, () => `<b>${A.label} → ${B.label}</b><br>${fmt(B.v)} แถว`);
   });
-  if (refLine) {
-    const y = m.t + ih - ih * refLine / max;
-    el("line", { x1: m.l, x2: W - m.r, y1: y, y2: y, stroke: "var(--ink-2)", "stroke-width": 1, "stroke-dasharray": "4 3" }, svg);
-    el("text", { x: W - m.r, y: y - 5, "text-anchor": "end", class: "tick" }, svg).textContent = "ค่าเฉลี่ย 0.12%";
-  }
-  return host;
-}
-
-/* horizontal single-series bars */
-function hbars(id, items, { value, label, valueLabel, tipHtml, labelW = 170, refLine, fmtRef }) {
-  const host = document.getElementById(id); const tip = makeTip(host);
-  const row = 30, W = Math.max(280, host.clientWidth || 560);
-  labelW = Math.min(labelW, Math.round(W * 0.45));
-  const m = { t: 6, r: 56, b: 6, l: labelW };
-  const H = m.t + m.b + row * items.length, iw = W - m.l - m.r;
-  const max = Math.max(...items.map(value), refLine || 0);
-  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img" }, host);
-  el("line", { x1: m.l, x2: m.l, y1: m.t, y2: H - m.b, class: "baseline" }, svg);
-  items.forEach((d, i) => {
-    const v = value(d), w = iw * v / max, y = m.t + i * row, bh = row - 10;
-    const hit = el("rect", { x: 0, y, width: W, height: row, fill: "transparent", class: "hit" }, svg);
-    const bar = el("path", { d: barPathH(m.l, y + 5, Math.max(w, 0.5), bh), fill: "var(--s1)", class: "bar" }, svg);
-    hover(host, tip, hit, bar, tipHtml(d), m.l + w / 2, y + 5);
-    const lt = el("text", { x: m.l - 8, y: y + row / 2 + 4, "text-anchor": "end", class: "cat" }, svg);
-    lt.textContent = label(d);
-    while (lt.getComputedTextLength() > m.l - 12 && lt.textContent.length > 4) lt.textContent = lt.textContent.slice(0, -2) + "…";
-    el("text", { x: m.l + w + 6, y: y + row / 2 + 4, class: "vlabel" }, svg).textContent = valueLabel(d);
+  Object.entries(nodes).forEach(([k, n]) => {
+    const x = cols[n.col], hh = n.h || Math.max(2, n.v * scale);
+    g.append("rect").attr("x", x).attr("y", n.y).attr("width", nw).attr("height", hh).attr("rx", 3)
+      .attr("fill", k === "all" ? css("--ink-2") : color[k]);
+    if (k === "all") return;
+    const ty = n.y + Math.min(hh / 2, 36);
+    g.append("text").attr("x", x + nw + 6).attr("y", ty - 2).attr("class", "lbl-b").text(n.label);
+    g.append("text").attr("x", x + nw + 6).attr("y", ty + 13).attr("class", "lbl").text(n.sub);
   });
-  if (refLine) {
-    const x = m.l + iw * refLine / max;
-    el("line", { x1: x, x2: x, y1: m.t, y2: H - m.b, stroke: "var(--ink-2)", "stroke-width": 1, "stroke-dasharray": "4 3" }, svg);
-  }
-  return host;
+  g.append("text").attr("x", nw + 6).attr("y", nodes.all.h / 2 - 2).attr("class", "lbl-b").text("ทั้งหมด");
+  g.append("text").attr("x", nw + 6).attr("y", nodes.all.h / 2 + 13).attr("class", "lbl").text("24.39M");
 }
 
-/* grouped bars, 2-3 series, percent scale */
-function gbars(id, legendId, data, colors) {
-  const host = document.getElementById(id); const tip = makeTip(host);
-  document.getElementById(legendId).innerHTML = data.series.map((s, i) => `<span style="--c:${colors[i]}">${s[0]}</span>`).join("");
-  const W = Math.max(280, host.clientWidth || 520), H = 250, m = { t: 22, r: 8, b: 30, l: 40 }, iw = W - m.l - m.r, ih = H - m.t - m.b;
-  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img" }, host);
-  for (let i = 0; i <= 4; i++) {
-    const y = m.t + ih - ih * i / 4;
-    el("line", { x1: m.l, x2: W - m.r, y1: y, y2: y, class: i ? "gridline" : "baseline" }, svg);
-    el("text", { x: m.l - 6, y: y + 4, "text-anchor": "end", class: "tick" }, svg).textContent = (25 * i) + "%";
-  }
-  const gw = iw / data.metrics.length, n = data.series.length, pad = gw * 0.2, bw = (gw - pad) / n;
-  data.metrics.forEach((mt, j) => {
-    el("text", { x: m.l + j * gw + gw / 2, y: H - m.b + 18, "text-anchor": "middle", class: "cat" }, svg).textContent = mt;
-    data.series.forEach((s, i) => {
-      const v = s[1][j], h = ih * v / 100, x = m.l + j * gw + pad / 2 + i * bw, y = m.t + ih - h;
-      const hit = el("rect", { x, y: m.t, width: bw, height: ih, fill: "transparent", class: "hit" }, svg);
-      const bar = el("path", { d: barPathV(x + 1, y, bw - 2, h), fill: colors[i], class: "bar" }, svg);
-      hover(host, tip, hit, bar, `<b>${s[0]}</b><br>${mt}: ${v.toFixed(1)}%`, x + bw / 2, y);
-      el("text", { x: x + bw / 2, y: y - 5, "text-anchor": "middle", class: "vlabel", "font-size": 11 }, svg).textContent = Math.round(v);
+/* ---------- 3. calendar heatmap ---------- */
+function calendar() {
+  const narrow = document.getElementById("v-cal").clientWidth < 460;
+  const years = d3.range(2000, 2021), months = d3.range(1, 13);
+  const { svg, w } = setup("v-cal", 10);
+  const m = { t: 4, r: 4, b: 50, l: 32 };
+  const cw = (w - m.l - m.r) / years.length, ch = Math.min(22, cw * 1.05);
+  const h = m.t + ch * 12 + m.b;
+  svg.attr("height", h).attr("viewBox", `0 0 ${w} ${h}`);
+  const map = new Map(E.ym.map(d => [d[0] * 100 + d[1], d]));
+  const max = d3.max(E.ym, d => d[3]);
+  const col = d3.scaleSequentialSqrt([0, max], seqBlue());
+  const g = svg.append("g").attr("transform", `translate(${m.l},${m.t})`);
+  g.selectAll("rect").data(years.flatMap(y => months.map(mo => map.get(y * 100 + mo) || [y, mo, 0, 0]))).join("rect")
+    .attr("x", d => (d[0] - 2000) * cw + 1).attr("y", d => (d[1] - 1) * ch + 1)
+    .attr("width", cw - 2).attr("height", ch - 2).attr("rx", 3)
+    .attr("fill", d => d[3] ? col(d[3]) : css("--empty"))
+    .call(bindTip, d => `<b>${d3.timeFormat("%b %Y")(new Date(d[0], d[1] - 1))}</b><br>${fmt(d[3])} fraud / ${fmt(d[2])} รายการ`);
+  ["Jan", "Apr", "Jul", "Oct"].forEach((t, i) => g.append("text").attr("class", "lbl").attr("x", -6).attr("y", i * 3 * ch + ch / 2 + 4).attr("text-anchor", "end").text(t));
+  years.forEach(y => { if (y % (narrow ? 5 : 2) === 0) g.append("text").attr("class", "lbl").attr("x", (y - 2000) * cw + cw / 2).attr("y", 12 * ch + 14).attr("text-anchor", "middle").text(y); });
+  legendRamp(svg, m.l, h - 26, 140, col.interpolator(), ["0", fmt(max) + " / เดือน"]);
+}
+
+/* ---------- 4. radial clock ---------- */
+function clock() {
+  const host = document.getElementById("v-clock");
+  const size = Math.min(host.clientWidth, 380);
+  const { svg, w } = setup("v-clock", size);
+  const cx = w / 2, cy = size / 2, R = size / 2 - 26, r0 = R * 0.16;
+  const series = [["Online", "--s1"], ["Chip", "--s2"], ["Swipe", "--s3"]];
+  d3.select("#lg-clock").html(series.map(s => `<span><i style="background:${css(s[1])}"></i>${s[0]}</span>`).join(""));
+  const by = d3.group(E.chipHr, d => d[0]);
+  const max = d3.max(E.chipHr, d => d[3] / d[2]);
+  const rs = d3.scaleSqrt([0, max], [r0, R]);
+  const ang = h => (h / 24) * 2 * Math.PI;
+  const g = svg.append("g").attr("transform", `translate(${cx},${cy})`);
+  [0.001, 0.005, 0.01, 0.015].filter(v => v < max).forEach(v => {
+    g.append("circle").attr("r", rs(v)).attr("fill", "none").attr("stroke", css("--grid"));
+    g.append("text").attr("class", "lbl").attr("x", 3).attr("y", -rs(v) - 2).style("font-size", "10px").text(pct(v, 1));
+  });
+  d3.range(0, 24, 3).forEach(hh => {
+    const a = ang(hh) - Math.PI / 2;
+    g.append("line").attr("x1", Math.cos(a) * r0).attr("y1", Math.sin(a) * r0).attr("x2", Math.cos(a) * R).attr("y2", Math.sin(a) * R).attr("stroke", css("--grid"));
+    g.append("text").attr("class", "lbl").attr("x", Math.cos(a) * (R + 14)).attr("y", Math.sin(a) * (R + 14) + 4).attr("text-anchor", "middle").text(String(hh).padStart(2, "0"));
+  });
+  const line = d3.lineRadial().angle(d => ang(d[1])).radius(d => rs(d[3] / d[2])).curve(d3.curveCardinalClosed.tension(0.4));
+  const area = d3.areaRadial().angle(d => ang(d[1])).innerRadius(r0).outerRadius(d => rs(d[3] / d[2])).curve(d3.curveCardinalClosed.tension(0.4));
+  series.slice().reverse().forEach(([k, c]) => {
+    const data = by.get(k).slice().sort((a, b) => a[1] - b[1]);
+    if (k === "Online") g.append("path").attr("d", area(data)).attr("fill", css(c)).attr("opacity", .12);
+    g.append("path").attr("d", line(data)).attr("fill", "none").attr("stroke", css(c)).attr("stroke-width", 2);
+    g.selectAll(null).data(data).join("circle")
+      .attr("cx", d => Math.cos(ang(d[1]) - Math.PI / 2) * rs(d[3] / d[2]))
+      .attr("cy", d => Math.sin(ang(d[1]) - Math.PI / 2) * rs(d[3] / d[2]))
+      .attr("r", 7).attr("fill", "transparent")
+      .call(bindTip, d => `<b>${k} · ${String(d[1]).padStart(2, "0")}:00</b><br>อัตรา fraud ${pct(d[3] / d[2], 3)}<br>${fmt(d[3])} / ${fmt(d[2])}`);
+  });
+}
+
+/* ---------- 5. US map ---------- */
+let US = null;
+async function usmap() {
+  if (!US) US = await d3.json("https://cdn.jsdelivr.net/npm/us-atlas@3/states-albers-10m.json");
+  const host = document.getElementById("v-map");
+  const w = host.clientWidth, h = Math.round(w * 0.62) + 34;
+  const { svg } = setup("v-map", h);
+  const rate = new Map(E.state.map(d => [STATE_NAMES[d[0]], d]));
+  const vals = E.state.filter(d => d[1] > 20000).map(d => d[2] / d[1]).sort(d3.ascending);
+  const max = d3.quantile(vals, 0.95);
+  const col = d3.scaleSequentialSqrt([0, max], seqBlue()).clamp(true);
+  const states = topojson.feature(US, US.objects.states);
+  const path = d3.geoPath(d3.geoIdentity().fitSize([w, h - 34], states));
+  svg.append("g").selectAll("path").data(states.features).join("path")
+    .attr("d", path).attr("stroke", css("--surface")).attr("stroke-width", 1)
+    .attr("fill", f => { const d = rate.get(f.properties.name); return d ? col(d[2] / d[1]) : css("--empty"); })
+    .call(bindTip, f => { const d = rate.get(f.properties.name); return d ? `<b>${f.properties.name}</b><br>อัตรา fraud ${pct(d[2] / d[1], 3)}<br>${fmt(d[2])} / ${fmt(d[1])}` : f.properties.name; });
+  legendRamp(svg, 0, h - 26, 140, col.interpolator(), ["0%", "≥ " + pct(max, 2)]);
+}
+
+/* ---------- 6. foreign bubbles ---------- */
+function pack() {
+  const host = document.getElementById("v-pack");
+  const w = host.clientWidth, h = Math.min(w, 360) + 34;
+  const { svg } = setup("v-pack", h);
+  const data = E.foreign.map(d => ({ name: d[0], n: d[1], f: d[2], r: d[2] / d[1] }));
+  const root = d3.pack().size([w, h - 34]).padding(4)(d3.hierarchy({ children: data }).sum(d => d.f));
+  const col = d3.scaleSequentialSqrt([0, 1], seqOrange());
+  const nodes = svg.append("g").selectAll("g").data(root.leaves()).join("g").attr("transform", d => `translate(${d.x},${d.y})`);
+  nodes.append("circle").attr("r", 0).attr("fill", d => col(d.data.r)).attr("stroke", css("--surface")).attr("stroke-width", 2)
+    .call(bindTip, d => `<b>${d.data.name}</b><br>อัตรา fraud ${pct(d.data.r, 1)}<br>${fmt(d.data.f)} fraud / ${fmt(d.data.n)} รายการ`)
+    .transition().duration(700).attr("r", d => d.r);
+  const txt = d => (isDark() ? d.data.r < 0.35 : d.data.r > 0.35) ? "#fff" : "#0b0b0b";
+  const big = nodes.filter(d => d.r > 22);
+  big.append("text").attr("text-anchor", "middle").attr("y", -2).attr("fill", txt)
+    .style("font-size", d => Math.min(15, d.r / 3.2) + "px").style("font-weight", 600).style("pointer-events", "none").text(d => d.data.name);
+  big.append("text").attr("text-anchor", "middle").attr("y", d => Math.min(15, d.r / 3.2) + 2).attr("fill", txt)
+    .style("font-size", d => Math.min(12, d.r / 3.6) + "px").style("pointer-events", "none").text(d => pct(d.data.r, 0));
+  legendRamp(svg, 0, h - 26, 140, col.interpolator(), ["0%", "100% fraud"]);
+}
+
+/* ---------- 7. MCC scatter ---------- */
+function mcc() {
+  const host = document.getElementById("v-mcc");
+  const w = host.clientWidth, h = w < 600 ? 340 : 420;
+  const { svg } = setup("v-mcc", h);
+  const m = { t: 18, r: 16, b: 40, l: 54 };
+  const data = E.mcc.filter(d => d[3] > 0).map(d => ({ code: d[0], name: d[1], n: d[2], f: d[3], r: d[3] / d[2] }));
+  const x = d3.scaleLog([5000, d3.max(data, d => d.n) * 1.3], [m.l, w - m.r]);
+  const y = d3.scaleLog([d3.min(data, d => d.r) * 0.7, d3.max(data, d => d.r) * 1.6], [h - m.b, m.t]);
+  const r = d3.scaleSqrt([0, d3.max(data, d => d.f)], [3, w < 600 ? 18 : 26]);
+  const yt = [0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03].filter(v => v >= y.domain()[0] && v <= y.domain()[1]);
+  svg.append("g").attr("class", "gridl").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(y).tickValues(yt).tickSize(-(w - m.l - m.r)));
+  svg.append("g").attr("class", "axis").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(y).tickValues(yt).tickFormat(d3.format(".2~%")).tickSize(0).tickPadding(6)).call(g => g.select(".domain").remove());
+  svg.append("g").attr("class", "axis").attr("transform", `translate(0,${h - m.b})`).call(d3.axisBottom(x).tickValues([1e4, 3e4, 1e5, 3e5, 1e6, 3e6]).tickFormat(d3.format("~s")));
+  svg.append("text").attr("class", "lbl").attr("x", w - m.r).attr("y", h - 6).attr("text-anchor", "end").text("จำนวนธุรกรรม (log) →");
+  svg.append("text").attr("class", "lbl").attr("x", m.l + 4).attr("y", m.t - 6).text("↑ อัตรา fraud (log)");
+  svg.append("line").attr("x1", m.l).attr("x2", w - m.r).attr("y1", y(BASE)).attr("y2", y(BASE)).attr("stroke", css("--ink-2")).attr("stroke-dasharray", "4 3");
+  const hi = d => d.r > 0.006;
+  svg.append("g").selectAll("circle").data(data.slice().sort((a, b) => b.f - a.f)).join("circle")
+    .attr("cx", d => x(d.n)).attr("cy", d => y(d.r)).attr("r", d => r(d.f))
+    .attr("fill", d => hi(d) ? css("--s2") : css("--s1")).attr("fill-opacity", d => hi(d) ? .85 : .5)
+    .attr("stroke", css("--surface")).attr("stroke-width", 1.5)
+    .call(bindTip, d => `<b>${d.code} · ${d.name}</b><br>อัตรา fraud ${pct(d.r, 2)}<br>${fmt(d.f)} fraud / ${fmt(d.n)} รายการ`);
+  const short = { 5094: "Jewelry & Watches", 7996: "Amusement Parks", 5651: "Family Clothing", 5932: "Antique Shops", 5815: "Digital Goods", 5411: "Grocery", 5541: "Gas Stations" };
+  const lab = Object.keys(short).map(c => data.find(d => d.code === +c)).filter(Boolean);
+  svg.append("g").selectAll("text").data(lab).join("text").attr("class", "lbl-b").style("pointer-events", "none")
+    .attr("x", d => x(d.n) + r(d.f) + 4).attr("y", d => y(d.r) + 4).text(d => short[d.code]);
+}
+
+/* ---------- 8. amount density ---------- */
+function amount() {
+  const host = document.getElementById("v-amt");
+  const w = host.clientWidth, h = 260;
+  const { svg } = setup("v-amt", h);
+  const m = { t: 22, r: 10, b: 32, l: 40 };
+  const S = [[0, "ปกติ", "--s1"], [1, "Fraud", "--s2"]];
+  d3.select("#lg-amt").html(S.map(s => `<span><i style="background:${css(s[2])}"></i>${s[1]}</span>`).join(""));
+  const series = S.map(([f]) => {
+    const all = E.hist.filter(d => d[0] === f), tot = d3.sum(all, d => d[2]);
+    return all.filter(d => d[1] <= 3.6).map(d => [d[1], d[2] / tot]);
+  });
+  const x = d3.scaleLinear([0, 3.7], [m.l, w - m.r]);
+  const y = d3.scaleLinear([0, d3.max(series.flat(), d => d[1]) * 1.1], [h - m.b, m.t]);
+  svg.append("g").attr("class", "gridl").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(y).ticks(4).tickSize(-(w - m.l - m.r)));
+  svg.append("g").attr("class", "axis").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(y).ticks(4, ".0%").tickSize(0).tickPadding(6)).call(g => g.select(".domain").remove());
+  svg.append("g").attr("class", "axis").attr("transform", `translate(0,${h - m.b})`).call(d3.axisBottom(x).tickValues([0, 1, 2, 3]).tickFormat(v => "$" + d3.format("~s")(Math.pow(10, v))));
+  const area = d3.area().x(d => x(d[0] + 0.05)).y0(h - m.b).y1(d => y(d[1])).curve(d3.curveBasis);
+  const line = d3.line().x(d => x(d[0] + 0.05)).y(d => y(d[1])).curve(d3.curveBasis);
+  series.forEach((s, i) => {
+    svg.append("path").attr("d", area(s)).attr("fill", css(S[i][2])).attr("opacity", .16);
+    svg.append("path").attr("d", line(s)).attr("fill", "none").attr("stroke", css(S[i][2])).attr("stroke-width", 2);
+  });
+  [[30.11, "--s1", "$30", "end"], [71.02, "--s2", "$71", "start"]].forEach(([v, c, t, a]) => {
+    const xx = x(Math.log10(v));
+    svg.append("line").attr("x1", xx).attr("x2", xx).attr("y1", m.t - 4).attr("y2", h - m.b).attr("stroke", css(c)).attr("stroke-dasharray", "3 3");
+    svg.append("text").attr("class", "lbl-b").attr("x", xx + (a === "end" ? -4 : 4)).attr("y", m.t - 8).attr("text-anchor", a).text("median " + t);
+  });
+  const hover = svg.append("line").attr("y1", m.t).attr("y2", h - m.b).attr("stroke", css("--axis")).style("opacity", 0);
+  svg.append("rect").attr("x", m.l).attr("y", m.t).attr("width", w - m.l - m.r).attr("height", h - m.t - m.b).attr("fill", "transparent")
+    .on("mousemove", ev => {
+      const b = Math.max(0, Math.min(3.6, Math.floor(x.invert(d3.pointer(ev)[0]) * 10) / 10));
+      const a = series[0].find(d => Math.abs(d[0] - b) < 1e-6), f = series[1].find(d => Math.abs(d[0] - b) < 1e-6);
+      hover.attr("x1", x(b + 0.05)).attr("x2", x(b + 0.05)).style("opacity", 1);
+      showTip(ev, `<b>$${d3.format(",.0f")(Math.pow(10, b))}–$${d3.format(",.0f")(Math.pow(10, b + 0.1))}</b><br>ปกติ ${a ? pct(a[1], 1) : "–"} · Fraud ${f ? pct(f[1], 1) : "–"}`);
+    }).on("mouseleave", () => { hover.style("opacity", 0); hideTip(); });
+}
+
+/* ---------- 9. error dot plot ---------- */
+function errors() {
+  const host = document.getElementById("v-err");
+  const data = E.err.map(d => ({ k: d[0] === "None" ? "ไม่มี error" : d[0], n: d[1], f: d[2], r: d[2] / d[1] })).sort((a, b) => b.r - a.r);
+  const w = host.clientWidth, row = 32, m = { t: 8, r: 50, b: 28, l: Math.min(140, w * 0.38) };
+  const h = m.t + m.b + row * data.length;
+  const { svg } = setup("v-err", h);
+  const x = d3.scaleLog([0.0008, 0.04], [m.l, w - m.r]);
+  const tv = [0.001, 0.003, 0.01, 0.03];
+  svg.append("g").attr("class", "gridl").attr("transform", `translate(0,${h - m.b})`).call(d3.axisBottom(x).tickValues(tv).tickSize(-(h - m.t - m.b)));
+  svg.append("g").attr("class", "axis").attr("transform", `translate(0,${h - m.b})`).call(d3.axisBottom(x).tickValues(tv).tickFormat(d3.format(".1~%"))).call(g => g.select(".domain").remove());
+  svg.append("line").attr("x1", x(BASE)).attr("x2", x(BASE)).attr("y1", m.t).attr("y2", h - m.b).attr("stroke", css("--ink-2")).attr("stroke-dasharray", "4 3");
+  const g = svg.append("g").selectAll("g").data(data).join("g").attr("transform", (d, i) => `translate(0,${m.t + i * row + row / 2})`);
+  g.append("text").attr("class", "lbl").attr("x", m.l - 10).attr("y", 4).attr("text-anchor", "end").text(d => d.k);
+  g.append("line").attr("x1", x(BASE)).attr("x2", d => x(d.r)).attr("stroke", d => d.r > BASE * 3 ? css("--s2") : css("--axis")).attr("stroke-width", 2);
+  g.append("circle").attr("cx", d => x(d.r)).attr("r", 7).attr("fill", d => d.r > BASE * 3 ? css("--s2") : css("--s1")).attr("stroke", css("--surface")).attr("stroke-width", 2)
+    .call(bindTip, d => `<b>${d.k}</b><br>อัตรา fraud ${pct(d.r, 2)}<br>${fmt(d.f)} / ${fmt(d.n)}`);
+  g.append("text").attr("class", "lbl-b").attr("x", d => x(d.r) + 12).attr("y", 4).text(d => pct(d.r, 1));
+}
+
+/* ---------- 10. gauges ---------- */
+function gauges() {
+  const host = document.getElementById("v-gauge");
+  const w = host.clientWidth, cw = w / 3, R = Math.min(cw / 2 - 6, 56), h = R * 2 + 30;
+  const { svg } = setup("v-gauge", h);
+  const arc = d3.arc().innerRadius(R * 0.74).outerRadius(R).cornerRadius(4);
+  Object.entries(MODEL.test).forEach(([k, v], i) => {
+    const g = svg.append("g").attr("transform", `translate(${cw * i + cw / 2},${R + 2})`);
+    g.append("path").attr("d", arc({ startAngle: 0, endAngle: 2 * Math.PI })).attr("fill", css("--empty"));
+    g.append("path").attr("fill", css(["--s1", "--s3", "--s2"][i]))
+      .transition().duration(900).attrTween("d", () => t => arc({ startAngle: 0, endAngle: 2 * Math.PI * v / 100 * t }));
+    g.append("text").attr("text-anchor", "middle").attr("y", 6).style("font-size", Math.max(14, R * 0.34) + "px").style("font-weight", 700).attr("fill", css("--ink")).text(v.toFixed(1) + "%");
+    g.append("text").attr("class", "lbl").attr("text-anchor", "middle").attr("y", R + 20).text(k);
+  });
+}
+
+/* ---------- 11. 10x10 waffles ---------- */
+function waffle100(id, hitN, colHit, colMiss, labels) {
+  const host = document.getElementById(id);
+  const w = host.clientWidth, size = Math.min(w, 200), gap = 3, cell = (size - gap * 9) / 10;
+  const { svg } = setup(id, size + 30);
+  const ox = (w - size) / 2;
+  const g = svg.append("g").attr("transform", `translate(${ox},0)`);
+  g.selectAll("rect").data(d3.range(100)).join("rect")
+    .attr("x", i => (i % 10) * (cell + gap)).attr("y", i => Math.floor(i / 10) * (cell + gap))
+    .attr("width", cell).attr("height", cell).attr("rx", 3).attr("fill", css("--empty"))
+    .call(bindTip, i => `<b>${i < hitN ? labels[0] : labels[1]}</b>`)
+    .transition().delay(i => i * 8).duration(200).attr("fill", i => i < hitN ? colHit : colMiss);
+  const lg = svg.append("g").attr("transform", `translate(${ox},${size + 20})`);
+  [[colHit, labels[0]], [colMiss, labels[1]]].forEach(([c, t], i) => {
+    lg.append("rect").attr("x", i * size / 2).attr("y", -9).attr("width", 10).attr("height", 10).attr("rx", 3).attr("fill", c);
+    lg.append("text").attr("class", "lbl").attr("x", i * size / 2 + 14).attr("y", 0).text(t);
+  });
+}
+
+/* ---------- 12. slope chart ---------- */
+function slope() {
+  const host = document.getElementById("v-slope");
+  const w = host.clientWidth, h = 260, m = { t: 16, r: 96, b: 30, l: 96 };
+  const { svg } = setup("v-slope", h);
+  const cols = ["--s1", "--s3", "--s2"];
+  d3.select("#lg-slope").html(MODEL.slope.map((d, i) => `<span><i style="background:${css(cols[i])}"></i>${d[0]}</span>`).join(""));
+  const y = d3.scaleLinear([0, 75], [h - m.b, m.t]), x0 = m.l, x1 = w - m.r;
+  [x0, x1].forEach((x, i) => {
+    svg.append("line").attr("x1", x).attr("x2", x).attr("y1", m.t).attr("y2", h - m.b).attr("stroke", css("--axis"));
+    svg.append("text").attr("class", "lbl-b").attr("x", x).attr("y", h - 8).attr("text-anchor", "middle").text(i ? "โมเดลของเรา" : "Kaggle baseline");
+  });
+  MODEL.slope.forEach((d, i) => {
+    const c = css(cols[i]);
+    svg.append("line").attr("x1", x0).attr("x2", x0).attr("y1", y(d[1])).attr("y2", y(d[1])).attr("stroke", c).attr("stroke-width", 2.5)
+      .transition().duration(900).delay(i * 150).attr("x2", x1).attr("y2", y(d[2]));
+    [[x0, d[1], "end", -10], [x1, d[2], "start", 10]].forEach(([x, v, a, dx]) => {
+      svg.append("circle").attr("cx", x).attr("cy", y(v)).attr("r", 5).attr("fill", c).attr("stroke", css("--surface")).attr("stroke-width", 2)
+        .call(bindTip, () => `<b>${d[0]}</b><br>Baseline ${d[1]}% → ${d[2].toFixed(1)}%`);
+      svg.append("text").attr("class", "lbl-b").attr("x", x + dx).attr("y", y(v) + 4).attr("text-anchor", a).text(`${d[0]} ${Math.round(v)}%`);
     });
   });
-  addTable(host, ["Split / Model", ...data.metrics], data.series.map(s => [s[0], ...s[1].map(v => v.toFixed(2) + "%")]));
 }
 
-/* ---------- render ---------- */
+/* ---------- 13. journey ---------- */
+function journey() {
+  const host = document.getElementById("v-journey");
+  const w = host.clientWidth, h = 260, m = { t: 30, r: 20, b: 50, l: 40 };
+  const { svg } = setup("v-journey", h);
+  const x = d3.scalePoint(MODEL.journey.map(d => d[0]), [m.l, w - m.r]).padding(0.4);
+  const y = d3.scaleLinear([0, 70], [h - m.b, m.t]);
+  svg.append("g").attr("class", "gridl").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(y).ticks(4).tickSize(-(w - m.l - m.r)));
+  svg.append("g").attr("class", "axis").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(y).ticks(4).tickFormat(d => d + "%").tickSize(0).tickPadding(6)).call(g => g.select(".domain").remove());
+  const area = d3.area().x(d => x(d[0])).y0(h - m.b).y1(d => y(d[2])).curve(d3.curveMonotoneX);
+  const line = d3.line().x(d => x(d[0])).y(d => y(d[2])).curve(d3.curveMonotoneX);
+  svg.append("path").attr("d", area(MODEL.journey)).attr("fill", css("--s1")).attr("opacity", .12);
+  const p = svg.append("path").attr("d", line(MODEL.journey)).attr("fill", "none").attr("stroke", css("--s1")).attr("stroke-width", 2.5);
+  const L = p.node().getTotalLength();
+  p.attr("stroke-dasharray", L).attr("stroke-dashoffset", L).transition().duration(1000).attr("stroke-dashoffset", 0);
+  const g = svg.append("g").selectAll("g").data(MODEL.journey).join("g").attr("transform", d => `translate(${x(d[0])},${y(d[2])})`);
+  g.append("circle").attr("r", 6).attr("fill", css("--s1")).attr("stroke", css("--surface")).attr("stroke-width", 2)
+    .call(bindTip, d => `<b>${d[0]}</b><br>${d[1]}<br>Validation F1 ${d[2].toFixed(2)}%`);
+  g.append("text").attr("class", "lbl-b").attr("y", -12).attr("text-anchor", "middle").text(d => d[2].toFixed(1) + "%");
+  g.append("text").attr("class", "lbl-b").attr("y", d => h - m.b - y(d[2]) + 18).attr("text-anchor", "middle").text(d => d[0]);
+  if (w > 440) g.append("text").attr("class", "lbl").attr("y", d => h - m.b - y(d[2]) + 34).attr("text-anchor", "middle").style("font-size", "10.5px").text(d => d[1]);
+}
+
+/* ---------- 14. treemap ---------- */
+function treemap() {
+  const host = document.getElementById("v-tree");
+  const w = host.clientWidth, h = w < 600 ? 420 : 380;
+  const { svg } = setup("v-tree", h);
+  const cols = ["--s1", "--s2", "--s3", "--s4", "--s5"];
+  const darkInk = ["--s3", "--s4", "--s5"];
+  d3.select("#lg-tree").html(MODEL.fi.map((g, i) => `<span><i style="background:${css(cols[i])}"></i>${g[0]} · ${(d3.sum(g[1], d => d[1]) * 100).toFixed(0)}%</span>`).join(""));
+  const root = d3.treemap().size([w, h]).paddingInner(2).round(true)(
+    d3.hierarchy({ children: MODEL.fi.map((g, i) => ({ name: g[0], children: g[1].map(f => ({ name: f[0], v: f[1], ci: i })) })) })
+      .sum(d => d.v).sort((a, b) => b.value - a.value));
+  const leaf = svg.selectAll("g").data(root.leaves()).join("g").attr("transform", d => `translate(${d.x0},${d.y0})`);
+  leaf.append("rect").attr("width", d => d.x1 - d.x0).attr("height", d => d.y1 - d.y0).attr("rx", 4)
+    .attr("fill", d => css(cols[d.data.ci])).attr("opacity", 0)
+    .call(bindTip, d => `<b>${d.data.name}</b><br>${MODEL.fi[d.data.ci][0]}<br>importance ${(d.data.v * 100).toFixed(2)}%`)
+    .transition().duration(600).delay((d, i) => i * 25).attr("opacity", d => Math.min(1, 0.6 + d.data.v * 4));
+  const ink = d => darkInk.includes(cols[d.data.ci]) ? "#0b0b0b" : "#fff";
+  leaf.filter(d => d.x1 - d.x0 > 60 && d.y1 - d.y0 > 30).append("text").attr("x", 7).attr("y", 18).attr("fill", ink)
+    .style("font-size", "12px").style("font-weight", 600).style("pointer-events", "none")
+    .text(d => { const max = Math.floor((d.x1 - d.x0 - 12) / 6.8); return d.data.name.length > max ? d.data.name.slice(0, max - 1) + "…" : d.data.name; });
+  leaf.filter(d => d.x1 - d.x0 > 44 && d.y1 - d.y0 > 46).append("text").attr("x", 7).attr("y", 34).attr("fill", ink)
+    .style("font-size", "11.5px").style("pointer-events", "none").text(d => (d.data.v * 100).toFixed(1) + "%");
+}
+
+/* ---------- render all ---------- */
 function render() {
-  document.querySelectorAll(".chart").forEach(c => c.innerHTML = "");
-  document.querySelectorAll("details.tbl").forEach(d => d.remove());
-  const css = getComputedStyle(document.documentElement);
-  const C1 = css.getPropertyValue("--s1").trim(), C2 = css.getPropertyValue("--s2").trim(), C3 = css.getPropertyValue("--axis").trim();
-
-  const yr = vbars("c-year", D.year, {
-    value: d => d[1], label: d => "'" + String(d[0]).slice(2), labelEvery: 4,
-    fmtTick: v => v >= 1000 ? (v / 1000) + "k" : String(Math.round(v)),
-    tipHtml: d => `<b>${d[0]}</b><br>${fmtInt(d[1])} รายการ fraud`
-  });
-  addTable(yr, ["ปี", "Fraud"], D.year.map(d => [d[0], fmtInt(d[1])]));
-
-  const rate = d => d[2] / d[1];
-  const rateTip = d => `<b>${d[0]}</b><br>อัตรา fraud ${fmtPct(rate(d), 3)}<br>${fmtInt(d[2])} / ${fmtInt(d[1])} รายการ`;
-  const rateRows = arr => arr.map(d => [d[0], fmtInt(d[1]), fmtInt(d[2]), fmtPct(rate(d), 3)]);
-
-  const ch = hbars("c-chip", D.chip, { value: rate, label: d => d[0], valueLabel: d => fmtPct(rate(d)), tipHtml: rateTip, labelW: 70, refLine: BASE_RATE });
-  addTable(ch, ["ช่องทาง", "ธุรกรรม", "Fraud", "อัตรา"], rateRows(D.chip));
-
-  const lc = hbars("c-loc", D.loc, { value: rate, label: d => d[0], valueLabel: d => fmtPct(rate(d)), tipHtml: rateTip, labelW: 120, refLine: BASE_RATE });
-  addTable(lc, ["ตำแหน่งร้าน", "ธุรกรรม", "Fraud", "อัตรา"], rateRows(D.loc));
-
-  const hr = vbars("c-hour", D.hour, {
-    value: rate, label: d => String(d[0]).padStart(2, "0"), labelEvery: 3, refLine: BASE_RATE,
-    fmtTick: v => (v * 100).toFixed(2) + "%",
-    tipHtml: d => `<b>${String(d[0]).padStart(2, "0")}:00–${String(d[0]).padStart(2, "0")}:59</b><br>อัตรา fraud ${fmtPct(rate(d), 3)}<br>${fmtInt(d[2])} / ${fmtInt(d[1])} รายการ`
-  });
-  addTable(hr, ["ชั่วโมง", "ธุรกรรม", "Fraud", "อัตรา"], D.hour.map(d => [String(d[0]).padStart(2, "0") + ":00", fmtInt(d[1]), fmtInt(d[2]), fmtPct(rate(d), 3)]));
-
-  const am = vbars("c-amt", D.amt, {
-    value: rate, label: d => d[0], refLine: BASE_RATE,
-    fmtTick: v => (v * 100).toFixed(2) + "%", showLabelsFor: [5, 6, 7],
-    tipHtml: rateTip
-  });
-  addTable(am, ["ยอดเงิน", "ธุรกรรม", "Fraud", "อัตรา"], rateRows(D.amt));
-
-  const mc = hbars("c-mcc", D.mcc, { value: rate, label: d => d[0], valueLabel: d => fmtPct(rate(d)), tipHtml: rateTip, labelW: 210, refLine: BASE_RATE });
-  addTable(mc, ["MCC", "ธุรกรรม", "Fraud", "อัตรา"], rateRows(D.mcc));
-
-  gbars("c-split", "lg-split", D.split, [C3, C1, C2]);
-  gbars("c-base", "lg-base", D.base, [C3, C1]);
-
-  const it = hbars("c-iter", D.iter, { value: d => d[1], label: d => d[0], valueLabel: d => d[1].toFixed(1) + "%", tipHtml: d => `<b>${d[0]}</b><br>Validation F1 ${d[1].toFixed(2)}%`, labelW: 130 });
-  addTable(it, ["รอบการทดลอง", "Validation F1"], D.iter.map(d => [d[0], d[1].toFixed(2) + "%"]));
-
-  const fi = hbars("c-fi", D.fi, { value: d => d[1], label: d => d[0], valueLabel: d => (d[1] * 100).toFixed(1) + "%", tipHtml: d => `<b>${d[0]}</b><br>importance ${d[1].toFixed(4)}`, labelW: 210 });
-  addTable(fi, ["Feature", "Importance"], D.fi.map(d => [d[0], d[1].toFixed(4)]));
+  waffle(); flow(); calendar(); clock(); pack(); mcc(); amount(); errors(); gauges();
+  waffle100("v-waf-p", 64, css("--s1"), css("--s2"), ["Fraud จริง", "แจ้งเตือนผิด"]);
+  waffle100("v-waf-r", 47, css("--s1"), css("--axis"), ["จับได้", "หลุดรอด"]);
+  slope(); journey(); treemap();
+  usmap().catch(() => d3.select("#v-map").html('<p class="cap">โหลดแผนที่ไม่ได้</p>'));
 }
-
-/* theme toggle */
-const btn = document.getElementById("themeBtn");
-function setTheme(t) {
-  if (t) document.documentElement.setAttribute("data-theme", t); else document.documentElement.removeAttribute("data-theme");
-  try { t ? localStorage.setItem("theme", t) : localStorage.removeItem("theme"); } catch (e) {}
+document.getElementById("themeBtn").addEventListener("click", () => {
+  const t = isDark() ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", t);
+  try { localStorage.setItem("theme", t); } catch (e) {}
   render();
-}
-try { const s = localStorage.getItem("theme"); if (s) document.documentElement.setAttribute("data-theme", s); } catch (e) {}
-btn.addEventListener("click", () => {
-  const dark = document.documentElement.getAttribute("data-theme") === "dark" ||
-    (!document.documentElement.hasAttribute("data-theme") && matchMedia("(prefers-color-scheme: dark)").matches);
-  setTheme(dark ? "light" : "dark");
 });
+try { const s = localStorage.getItem("theme"); if (s) document.documentElement.setAttribute("data-theme", s); } catch (e) {}
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
 let lastW = innerWidth, rt;
 addEventListener("resize", () => { if (innerWidth === lastW) return; lastW = innerWidth; clearTimeout(rt); rt = setTimeout(render, 150); });
